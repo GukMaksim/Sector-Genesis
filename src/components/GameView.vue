@@ -1,96 +1,194 @@
 <template>
-  <div id="game-container" class="relative w-full h-full overflow-hidden bg-[#2a2520]">
-    <!-- HUD Overlay -->
-    <div v-if="!loading" class="absolute top-0 left-0 w-full p-4 pointer-events-none z-10">
-      <!-- XP Bar (Enhanced) -->
-      <div class="w-full h-4 bg-gray-900 border border-sci-fi-blue/20 rounded-sm overflow-hidden mb-2 shadow-[0_0_10px_rgba(0,242,255,0.1)] relative">
-        <div 
-          class="h-full bg-gradient-to-r from-sci-fi-blue/50 to-sci-fi-blue shadow-[0_0_15px_rgba(0,242,255,0.5)] transition-all duration-300 relative" 
-          :style="{ width: gameStore.xpPercentage + '%' }"
-        >
-            <div class="absolute inset-0 bg-white/10 animate-pulse"></div>
-        </div>
-        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white mix-blend-difference tracking-tighter">
-            NEXT LEVEL PROGRESS: {{ Math.floor(gameStore.xpPercentage) }}%
-        </div>
-      </div>
-      
-      <div class="flex justify-between items-start text-white font-mono">
-        <div>
-          <div class="text-xs text-sci-fi-blue">OPERATIVE STATUS</div>
-          <div class="text-xl font-bold uppercase tracking-wider">{{ gameStore.currentStage.name }}</div>
-          <div class="text-sm opacity-70">LEVEL {{ gameStore.level }}</div>
-        </div>
+  <div id="game-container" class="game-shell">
+    <div v-if="!loading" class="hud-layer">
+      <header class="hud-top">
+        <section class="hud-brand panel panel--accent panel--compact">
+          <div class="panel-kicker">TERRAN COMMAND</div>
+          <div class="stage-title">{{ gameStore.currentStage.name }}</div>
+          <div class="stage-meta stage-meta--compact">
+            <span class="pill pill--blue">LV {{ gameStore.level }}</span>
+            <span class="pill">{{ formattedTime }}</span>
+            <span class="pill pill--muted">{{ gameStore.skillPoints }} CP</span>
+          </div>
+        </section>
 
-        <div class="flex flex-col items-center">
-            <div class="text-xs text-sci-fi-green mb-1">SHIELD INTEGRITY</div>
-            <div class="w-48 h-4 bg-gray-800 border border-sci-fi-green/30 rounded-sm overflow-hidden">
-                <div 
-                    class="h-full bg-sci-fi-green transition-all duration-300" 
-                    :style="{ width: (playerHealthPercentage) + '%' }"
-                ></div>
+        <section class="hud-core panel panel--compact">
+          <div class="hud-core__label-row">
+            <span class="panel-kicker">XP</span>
+            <span class="hud-core__value">{{ Math.floor(gameStore.xpPercentage) }}%</span>
+          </div>
+          <div class="progress-track progress-track--xp">
+            <div
+              class="progress-fill progress-fill--xp"
+              :style="{ width: `${clampedXpPercentage}%` }"
+            />
+          </div>
+        </section>
+
+        <section class="hud-right panel panel--stats panel--compact">
+          <div class="mini-stat mini-stat--bar">
+            <div class="mini-stat__row">
+              <span class="mini-stat__label">SHIELD</span>
+              <span class="mini-stat__value mini-stat__value--small">{{ Math.ceil(clampedPlayerHealthPercentage) }}%</span>
             </div>
-        </div>
-        
-        <div class="text-right">
-          <div class="text-xs text-sci-fi-red">THREAT ELIMINATED</div>
-          <div class="text-2xl font-bold">{{ gameStore.kills }}</div>
-        </div>
-      </div>
+            <div class="progress-track progress-track--health" :class="{ 'is-critical': playerHealthCritical }">
+              <div
+                class="progress-fill progress-fill--health"
+                :style="{ width: `${clampedPlayerHealthPercentage}%` }"
+              />
+            </div>
+          </div>
+          <div class="mini-stat-grid">
+            <div class="mini-stat mini-stat--tiny">
+              <span class="mini-stat__label">KILLS</span>
+              <span class="mini-stat__value">{{ gameStore.kills }}</span>
+            </div>
+            <div class="mini-stat mini-stat--tiny">
+              <span class="mini-stat__label">HP</span>
+              <span class="mini-stat__value">{{ playerHealthText }}</span>
+            </div>
+          </div>
+        </section>
+      </header>
     </div>
 
-    <!-- Upgrade Overlay -->
-    <div v-if="gameStore.showUpgradeOverlay" class="absolute inset-0 flex items-center justify-center bg-black/80 z-40 backdrop-blur-sm">
-      <div class="max-w-4xl w-full p-8">
-        <h2 class="text-4xl font-black text-sci-fi-blue mb-8 text-center italic tracking-widest">ENHANCEMENT AVAILABLE</h2>
-        <div class="grid grid-cols-3 gap-6">
-          <button 
-            v-for="upgrade in gameStore.availableUpgrades" 
-            :key="upgrade.id"
-            @click="gameStore.applyUpgrade(upgrade)"
-            class="group relative bg-gray-900 border-2 border-sci-fi-blue/30 hover:border-sci-fi-blue p-6 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(0,242,255,0.3)]"
+    <div v-if="gameStore.showUpgradeOverlay" class="overlay overlay--upgrade">
+      <div class="overlay-shell overlay-shell--tree">
+        <div class="overlay-header">
+          <div>
+            <div class="panel-kicker">DOCTRINE MATRIX</div>
+            <h2 class="overlay-title">Terran Skill Tree</h2>
+          </div>
+          <p class="overlay-copy">Spend command points on one branch at a time. Each node shows its cost, current rank, and effects.</p>
+        </div>
+
+        <div class="tree-topline">
+          <div class="tree-points panel panel--compact">
+            <span class="panel-kicker">AVAILABLE POINTS</span>
+            <strong>{{ gameStore.skillPoints }}</strong>
+          </div>
+          <div class="tree-loadout panel panel--compact">
+            <span class="panel-kicker">CURRENT LOADOUT</span>
+            <div class="chip-row chip-row--compact">
+              <span v-for="weapon in weaponLoadout" :key="weapon" class="pill pill--weapon">{{ weapon }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-branchbar">
+          <button
+            v-for="branch in gameStore.skillTreeBranches"
+            :key="branch.id"
+            class="branch-tab"
+            :class="{ 'is-active': branch.id === activeBranchId }"
+            :style="{ '--branch-accent': branch.accent }"
+            @click="activeBranchId = branch.id"
           >
-            <div class="text-xl font-bold text-white mb-2 uppercase">{{ upgrade.name }}</div>
-            <div class="text-sm text-gray-400 mb-4">{{ upgrade.description }}</div>
-            <div class="text-xs text-sci-fi-blue font-bold opacity-0 group-hover:opacity-100 transition-opacity">INSTALL MODULE</div>
-            
-            <!-- Decorative corners -->
-            <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sci-fi-blue opacity-50"></div>
-            <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-sci-fi-blue opacity-50"></div>
+            <span class="branch-tab__name">{{ branch.name }}</span>
+            <span class="branch-tab__hint">{{ branch.nodes.length }} nodes</span>
+          </button>
+        </div>
+
+        <div class="tree-body">
+          <div class="tree-summary panel panel--compact">
+            <div class="tree-summary__title">Selected Doctrine</div>
+            <div class="tree-summary__branch">{{ activeBranch?.title }}</div>
+            <p class="tree-summary__copy">{{ activeBranchSummary }}</p>
+            <div class="tree-summary__legend">
+              <span><strong>Cost:</strong> 1 CP per node</span>
+              <span><strong>Tip:</strong> Unlocked nodes stay active for the run</span>
+            </div>
+          </div>
+
+          <div class="skill-node-list">
+            <button
+              v-for="node in activeBranch?.nodes ?? []"
+              :key="node.id"
+              class="skill-node"
+              :class="{
+                'is-available': node.available,
+                'is-unlocked': node.rank > 0,
+                'is-locked': node.locked,
+              }"
+              :disabled="!node.available"
+              @click="unlockNode(node.id)"
+            >
+              <div class="skill-node__top">
+                <span class="skill-node__tag">{{ node.tag }}</span>
+                <span class="skill-node__cost">COST {{ node.cost }} CP</span>
+                <span class="skill-node__rank">RANK {{ node.rank }}/{{ node.maxRank }}</span>
+              </div>
+              <div class="skill-node__name">{{ node.name }}</div>
+              <div class="skill-node__description">{{ node.description }}</div>
+              <div class="skill-node__effects">
+                <span v-for="effect in describeNodeEffects(node)" :key="effect" class="skill-node__effect">
+                  {{ effect }}
+                </span>
+              </div>
+              <div class="skill-node__footer">
+                <span>{{ node.available ? 'AVAILABLE' : node.locked ? 'LOCKED' : 'SOLD OUT' }}</span>
+                <span v-if="node.rank > 0">{{ node.rank }} / {{ node.maxRank }} INSTALLED</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="tree-footer">
+          <span>{{ gameStore.skillPoints > 0 ? `${gameStore.skillPoints} point(s) remaining` : 'No points remaining' }}</span>
+          <button class="cta-button cta-button--secondary" @click="continueBattle">
+            Continue Battle
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Game Over Overlay -->
-    <div v-if="gameStore.isGameOver" class="absolute inset-0 flex items-center justify-center bg-black/95 z-50 backdrop-blur-md">
-      <div class="text-center p-12 border-2 border-sci-fi-red bg-gray-950/50 shadow-[0_0_50px_rgba(255,0,60,0.2)]">
-        <h2 class="text-6xl font-black text-sci-fi-red mb-4 italic tracking-tighter">MISSION FAILED</h2>
-        <div class="text-xl text-gray-400 mb-8 uppercase tracking-widest font-mono">Operative terminated in Sector Genesis</div>
-        
-        <div class="grid grid-cols-2 gap-8 mb-12 text-left font-mono">
-            <div class="border-l-2 border-gray-800 pl-4">
-                <div class="text-xs text-gray-500">THREATS ELIMINATED</div>
-                <div class="text-3xl font-bold text-white">{{ gameStore.kills }}</div>
-            </div>
-            <div class="border-l-2 border-gray-800 pl-4">
-                <div class="text-xs text-gray-500">FINAL LEVEL REACHED</div>
-                <div class="text-3xl font-bold text-white">{{ gameStore.level }}</div>
-            </div>
+    <div v-if="gameStore.isGameOver" class="overlay overlay--gameover">
+      <div class="overlay-shell overlay-shell--gameover">
+        <div class="overlay-header overlay-header--center">
+          <div class="panel-kicker panel-kicker--danger">MISSION FAILED</div>
+          <h2 class="overlay-title overlay-title--danger">Re-deploy to Sector Genesis</h2>
+          <p class="overlay-copy overlay-copy--center">
+            The operative was terminated after sustained enemy pressure. Review the run summary and redeploy.
+          </p>
         </div>
 
-        <button 
-          @click="restartGame"
-          class="px-12 py-4 bg-sci-fi-red text-black font-black text-xl hover:bg-white transition-colors uppercase tracking-widest"
-        >
-          Re-deploy to Sector
-        </button>
+        <div class="results-grid">
+          <div class="result-card">
+            <span class="panel-kicker">THREATS ELIMINATED</span>
+            <strong>{{ gameStore.kills }}</strong>
+          </div>
+          <div class="result-card">
+            <span class="panel-kicker">FINAL LEVEL</span>
+            <strong>{{ gameStore.level }}</strong>
+          </div>
+          <div class="result-card">
+            <span class="panel-kicker">RUN TIME</span>
+            <strong>{{ formattedTime }}</strong>
+          </div>
+          <div class="result-card">
+            <span class="panel-kicker">CREDITS</span>
+            <strong>{{ gameStore.credits }}</strong>
+          </div>
+        </div>
+
+        <div class="overlay-actions">
+          <button class="cta-button cta-button--danger" @click="restartGame">
+            Re-deploy to Sector
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- UI Overlay will go here -->
-    <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-white bg-[#2a2520] z-50">
-      <div class="text-2xl font-bold animate-pulse tracking-[0.5em]">LOADING SECTOR...</div>
+    <div v-if="loading" class="overlay overlay--loading">
+      <div class="loading-card">
+        <div class="loading-orb" />
+        <div class="panel-kicker">INITIALIZING BATTLEFIELD</div>
+        <div class="loading-title">LOADING SECTOR</div>
+        <div class="loading-copy">Synchronizing tactical systems, rendering battlefield assets, and arming the HUD.</div>
+        <div class="loading-bar">
+          <div class="loading-bar__fill" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -103,11 +201,114 @@ import { useGameStore } from '../stores/gameStore';
 const loading = ref(true);
 const gameStore = useGameStore();
 const engineInstance = ref<GameEngine | null>(null);
+const activeBranchId = ref('command');
 
 const playerHealthPercentage = computed(() => {
     if (!engineInstance.value?.player) return 100;
     return (engineInstance.value.player.currentHealth / engineInstance.value.player.maxHealth) * 100;
 });
+
+const clampedPlayerHealthPercentage = computed(() => Math.min(100, Math.max(0, playerHealthPercentage.value)));
+
+const playerHealthCritical = computed(() => playerHealthPercentage.value < 35);
+
+const playerHealthText = computed(() => {
+  if (playerHealthPercentage.value <= 0) return 'OFFLINE';
+  if (playerHealthPercentage.value < 35) return 'CRITICAL';
+  if (playerHealthPercentage.value < 70) return 'DAMAGED';
+  return 'STABLE';
+});
+
+const clampedXpPercentage = computed(() => Math.min(100, Math.max(0, gameStore.xpPercentage)));
+
+const formattedTime = computed(() => {
+  const totalSeconds = Math.max(0, Math.floor(gameStore.time));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+});
+
+const weaponLoadout = computed(() => gameStore.equippedWeaponNames);
+
+const activeBranch = computed(() => gameStore.skillTreeBranches.find((branch) => branch.id === activeBranchId.value) ?? gameStore.skillTreeBranches[0]);
+
+const activeBranchSummary = computed(() => {
+  switch (activeBranch.value?.id) {
+    case 'command':
+      return 'Focus on XP flow, crit chance, sustain, and combat efficiency.';
+    case 'arsenal':
+      return 'Upgrade rifles into a full Terran arsenal, then unlock heavy weapons.';
+    case 'engineering':
+      return 'Improve armor, recovery, projectile shape, and battlefield endurance.';
+    case 'mobility':
+      return 'Boost movement, shields, and support fire for faster runs and safer resets.';
+    default:
+      return 'Select a branch to inspect its nodes.';
+  }
+});
+
+const unlockNode = (nodeId: string) => {
+  gameStore.unlockSkillNode(nodeId);
+};
+
+const continueBattle = () => {
+  gameStore.closeUpgradeOverlay();
+};
+
+const describeNodeEffects = (node: { effects: Array<{ type: string; stat?: string; value?: number; weaponId?: string; mode?: string }> }) => {
+  const statLabels: Record<string, string> = {
+    damageMult: 'DAMAGE',
+    fireRateMult: 'FIRE RATE',
+    speedMult: 'MOVE SPEED',
+    projectileCountBonus: 'PROJECTILE COUNT',
+    armor: 'ARMOR',
+    lifesteal: 'LIFESTEAL',
+    criticalChance: 'CRITICAL CHANCE',
+    pickupRadius: 'PICKUP RADIUS',
+    xpGainMult: 'XP GAIN',
+    maxHealthBonus: 'MAX HEALTH',
+    projectileSizeMult: 'PROJECTILE SIZE',
+    projectileSpeedMult: 'PROJECTILE SPEED',
+  };
+  const percentStats = new Set([
+    'damageMult',
+    'fireRateMult',
+    'speedMult',
+    'xpGainMult',
+    'maxHealthBonus',
+    'projectileSizeMult',
+    'projectileSpeedMult',
+  ]);
+
+  return node.effects.map((effect) => {
+    if (effect.type === 'weapon_unlock') {
+      return `UNLOCK ${String(effect.weaponId).replaceAll('_', ' ').toUpperCase()}`;
+    }
+
+    if (effect.type === 'weapon_rank') {
+      return `+${effect.value} ${String(effect.weaponId).replaceAll('_', ' ').toUpperCase()} RANK`;
+    }
+
+    if (effect.type === 'health_burst') {
+      return `HEAL +${effect.value}`;
+    }
+
+    const symbol = effect.mode === 'mult' ? '+' : '+';
+    if (effect.stat === 'criticalChance' || effect.stat === 'xpGainMult') {
+      return `${symbol}${Math.round((effect.value ?? 0) * 100)}% ${effect.stat === 'criticalChance' ? 'CRIT' : 'XP GAIN'}`;
+    }
+
+    if (effect.stat && percentStats.has(effect.stat)) {
+      return `${symbol}${Math.round((effect.value ?? 0) * 100)}% ${statLabels[effect.stat]}`;
+    }
+
+    if (effect.stat && statLabels[effect.stat]) {
+      return `${symbol}${effect.value} ${statLabels[effect.stat]}`;
+    }
+
+    return `${symbol}${Math.round((effect.value ?? 0) * 100)}% ${String(effect.stat).replace(/([A-Z])/g, ' $1').toUpperCase()}`;
+  });
+};
 
 const restartGame = () => {
     window.location.reload();
@@ -118,7 +319,7 @@ onMounted(async () => {
   engineInstance.value = engine;
   await engine.init({
     resizeTo: window,
-    backgroundColor: 0x2a2520,
+    backgroundColor: 0x040811,
     antialias: true,
   });
   
@@ -129,10 +330,3 @@ onMounted(async () => {
   });
 });
 </script>
-
-<style scoped>
-#game-container {
-  width: 100vw;
-  height: 100vh;
-}
-</style>

@@ -1,19 +1,36 @@
 import * as PIXI from 'pixi.js';
 import { Entity } from './Entity';
 
+export interface ProjectileOptions {
+    speed?: number;
+    damage?: number;
+    size?: number;
+    color?: number;
+    lifeTime?: number;
+    splashRadius?: number;
+}
+
 export class Projectile extends Entity {
     public speed: number = 10;
     public damage: number = 10;
+    public splashRadius: number = 0;
     public direction: { x: number, y: number };
     public lifeTime: number = 2000; // ms
 
-    constructor(x: number, y: number, direction: { x: number, y: number }) {
+    constructor(x: number, y: number, direction: { x: number, y: number }, options: ProjectileOptions = {}) {
         super();
         this.direction = direction;
+        this.speed = options.speed ?? this.speed;
+        this.damage = options.damage ?? this.damage;
+        this.lifeTime = options.lifeTime ?? this.lifeTime;
+        this.splashRadius = options.splashRadius ?? 0;
         
         const graphics = new PIXI.Graphics();
-        graphics.rect(-5, -2, 10, 4);
-        graphics.fill(0xffff00);
+        const size = options.size ?? 1;
+        const halfWidth = 5 * size;
+        const halfHeight = 2 * size;
+        graphics.rect(-halfWidth, -halfHeight, halfWidth * 2, halfHeight * 2);
+        graphics.fill(options.color ?? 0xffff00);
         
         this.setVisual(graphics);
         this.container.x = x;

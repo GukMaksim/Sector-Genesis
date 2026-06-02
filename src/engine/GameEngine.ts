@@ -68,10 +68,6 @@ export class GameEngine {
 
         this.gameStore.time += (this.app.ticker.deltaMS / 1000);
 
-        // Keep player at center
-        this.player.container.x = this.app.renderer.width / 2;
-        this.player.container.y = this.app.renderer.height / 2;
-
         // 1. Update Player (Aiming at nearest enemy)
         let nearestEnemy = null;
         let minDist = Infinity;
@@ -103,13 +99,7 @@ export class GameEngine {
             this.player.container.y, 
             this.enemies, 
             this.app.stage,
-            (x, y, xp) => {
-                // Drop XP Gem for AOE kills
-                const gem = new XpGem(x, y, xp);
-                this.xpGems.push(gem);
-                this.app.stage.addChild(gem.container);
-                this.gameStore.kills++;
-            }
+            (x, y, xp) => this.handleEnemyKilled(x, y, xp)
         );
         this.projectiles.push(...newProjectiles);
 
@@ -123,7 +113,7 @@ export class GameEngine {
 
         // 6. Update XP Gems
         this.xpGems = this.xpGems.filter(gem => {
-            const collected = gem.updateWithPlayer(delta, this.player!.container, 120); 
+            const collected = gem.updateWithPlayer(delta, this.player!.container, 120 + this.gameStore.stats.pickupRadius); 
             if (collected) {
                 this.gameStore.addXp(gem.value);
                 gem.destroy();
@@ -150,17 +140,43 @@ export class GameEngine {
                 const dy = p.container.y - enemy.container.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 25) {
-                    const deadX = enemy.container.x;
-                    const deadY = enemy.container.y;
-                    
-                    enemy.takeDamage(p.damage);
+                    const hitX = enemy.container.x;
+                    const hitY = enemy.container.y;
+                    const hitXp = enemy.xpValue;
+                    let directHitKilledEnemy = false;
+
+                    if (p.splashRadius > 0) {
+                        for (const splashEnemy of this.enemies) {
+                            if (splashEnemy.isDestroyed) continue;
+                            const splashX = splashEnemy.container.x;
+                            const splashY = splashEnemy.container.y;
+                            const splashXp = splashEnemy.xpValue;
+                            const sx = splashEnemy.container.x - p.container.x;
+                            const sy = splashEnemy.container.y - p.container.y;
+                            const splashDist = Math.sqrt(sx * sx + sy * sy);
+                            if (splashDist <= p.splashRadius) {
+                                const falloff = 1 - Math.min(1, splashDist / p.splashRadius) * 0.35;
+                                splashEnemy.takeDamage(p.damage * falloff);
+                                if (splashEnemy.isDestroyed) {
+                                    this.handleEnemyKilled(splashX, splashY, splashXp);
+                                }
+                            }
+                        }
+                    } else {
+                        enemy.takeDamage(p.damage);
+                        directHitKilledEnemy = enemy.isDestroyed;
+                    }
                     p.destroy();
                     
                     if (enemy.isDestroyed) {
-                        const gem = new XpGem(deadX, deadY, enemy.xpValue);
-                        this.xpGems.push(gem);
-                        this.app.stage.addChild(gem.container);
-                        this.gameStore.kills++;
+                        if (directHitKilledEnemy) {
+                            this.handleEnemyKilled(hitX, hitY, hitXp);
+                        }
+                        return false;
+                    }
+
+                    if (directHitKilledEnemy) {
+                        this.handleEnemyKilled(hitX, hitY, hitXp);
                         return false;
                     }
                 }
@@ -188,5 +204,17 @@ export class GameEngine {
 
     public get renderer() {
         return this.app.renderer;
+    }
+
+    private handleEnemyKilled(x: number, y: number, xp: number) {
+        const gem = new XpGem(x, y, xp);
+        this.xpGems.push(gem);
+        this.app.stage.addChild(gem.container);
+        this.gameStore.kills++;
+
+        const lifesteal = this.gameStore.stats.lifesteal;
+        if (lifesteal > 0 && this.player) {
+            this.player.currentHealth = Math.min(this.player.maxHealth, this.player.currentHealth + lifesteal * 2);
+        }
     }
 }
