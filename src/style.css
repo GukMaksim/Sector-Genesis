@@ -976,6 +976,7 @@ body::after {
 @media (max-width: 1200px) {
   .hud-top {
     grid-template-columns: 1fr;
+    grid-template-columns: max-content;
   }
 
   .upgrade-grid,
@@ -995,7 +996,20 @@ body::after {
 
 @media (max-width: 760px) {
   .hud-layer {
-    padding: 12px;
+    padding: 8px;
+  }
+
+  .hud-top {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .hud-brand {
+    display: none; /* Hide brand on mobile to save space */
+  }
+
+  .hud-core {
+    order: -1;
   }
 
   .panel--hint,
