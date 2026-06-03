@@ -53,6 +53,15 @@ export class GameEngine {
         this.background = new BackgroundSystem(this.app.stage);
         this.spawner = new SpawnerSystem(this.app.stage);
 
+        // Preload assets
+        await PIXI.Assets.load([
+            'src/assets/characters/marine/marine-recruit.png',
+            'src/assets/characters/marine/marine-veteran.png',
+            'src/assets/characters/marine/heavy-trooper.png',
+            'src/assets/characters/marine/siege-commander.png',
+            'src/assets/characters/marine/dominion-general.png'
+        ]);
+
         // Initialize entities
         this.player = new Player();
         this.app.stage.addChild(this.player.container);

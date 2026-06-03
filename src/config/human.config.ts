@@ -16,7 +16,7 @@ export const HUMAN_CONFIG: RaceConfig = {
             }
         },
         {
-            level: 10,
+            level: 5,
             name: 'Marine Veteran',
             weaponType: 'RIFLE',
             statModifiers: {
@@ -28,7 +28,7 @@ export const HUMAN_CONFIG: RaceConfig = {
             }
         },
         {
-            level: 20,
+            level: 10,
             name: 'Heavy Trooper',
             weaponType: 'DUAL_RIFLES',
             statModifiers: {
@@ -40,7 +40,7 @@ export const HUMAN_CONFIG: RaceConfig = {
             }
         },
         {
-            level: 30,
+            level: 15,
             name: 'Siege Commander',
             weaponType: 'EXPLOSIVE_RIFLE',
             statModifiers: {
@@ -52,7 +52,7 @@ export const HUMAN_CONFIG: RaceConfig = {
             }
         },
         {
-            level: 40,
+            level: 20,
             name: 'Dominion General',
             weaponType: 'PLASMA_CANNON',
             statModifiers: {

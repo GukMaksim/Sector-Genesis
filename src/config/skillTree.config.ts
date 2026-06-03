@@ -10,8 +10,8 @@ export const SKILL_TREE_CONFIG: SkillTreeBranchConfig[] = [
       {
         id: 'command-scan',
         branch: 'command',
-        name: 'Tactical Scan',
-        description: 'Increase XP gain and pickup radius for a cleaner battlefield sweep.',
+        name: 'Тактичне сканування',
+        description: 'Збільште приріст досвіду та радіус захоплення для чистішого удару на полі бою.',
         cost: 1,
         maxRank: 3,
         effects: [
