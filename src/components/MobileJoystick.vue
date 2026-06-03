@@ -60,8 +60,8 @@ const handleTouch = (e: TouchEvent) => {
 <style scoped>
 .joystick-container {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  bottom: 40px;
+  left: 40px;
   z-index: 1000;
 }
 
