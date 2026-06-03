@@ -3,12 +3,13 @@ import { Entity } from './Entity';
 import { InputManager } from '../engine/managers/InputManager';
 import { useGameStore } from '../stores/gameStore';
 
-enum Direction {
-    DOWN = 0,
-    LEFT = 1,
-    RIGHT = 2,
-    UP = 3
-}
+const Direction = {
+    DOWN: 0,
+    LEFT: 1,
+    RIGHT: 2,
+    UP: 3
+} as const;
+type Direction = (typeof Direction)[keyof typeof Direction];
 
 export class Player extends Entity {
     public baseSpeed: number = 5;
