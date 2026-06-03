@@ -38,8 +38,6 @@ export class Projectile extends Entity {
         
         // Rotate towards direction
         this.container.rotation = Math.atan2(direction.y, direction.x);
-
-        setTimeout(() => this.destroy(), this.lifeTime);
     }
 
     public update(delta: number) {

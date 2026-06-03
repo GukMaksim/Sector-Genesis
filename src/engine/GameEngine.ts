@@ -59,7 +59,9 @@ export class GameEngine {
             'src/assets/characters/marine/marine-veteran.png',
             'src/assets/characters/marine/heavy-trooper.png',
             'src/assets/characters/marine/siege-commander.png',
-            'src/assets/characters/marine/dominion-general.png'
+            'src/assets/characters/marine/dominion-general.png',
+            'src/assets/characters/monsters/monster1.png',
+            'src/assets/characters/monsters/monster2.png'
         ]);
 
         // Initialize entities
@@ -77,10 +79,20 @@ export class GameEngine {
 
         this.gameStore.time += (this.app.ticker.deltaMS / 1000);
 
-        // 1. Update Player (Aiming at nearest enemy)
+        // 1. Update Player (Aiming at nearest visible enemy)
         let nearestEnemy = null;
         let minDist = Infinity;
+        const margin = 50;
+
         for (const e of this.enemies) {
+            // Check visibility
+            if (e.container.x < -margin || 
+                e.container.x > window.innerWidth + margin || 
+                e.container.y < -margin || 
+                e.container.y > window.innerHeight + margin) {
+                continue;
+            }
+
             const d = Math.sqrt(Math.pow(e.container.x - this.player.container.x, 2) + Math.pow(e.container.y - this.player.container.y, 2));
             if (d < minDist) {
                 minDist = d;
@@ -117,6 +129,17 @@ export class GameEngine {
         this.projectiles = this.projectiles.filter(p => {
             if (p.isDestroyed) return false;
             p.update(delta);
+
+            // Destroy if out of bounds
+            const boundsMargin = 40;
+            if (p.container.x < -boundsMargin || 
+                p.container.x > window.innerWidth + boundsMargin || 
+                p.container.y < -boundsMargin || 
+                p.container.y > window.innerHeight + boundsMargin) {
+                p.destroy();
+                return false;
+            }
+
             return true;
         });
 

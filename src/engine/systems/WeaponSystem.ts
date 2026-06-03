@@ -45,7 +45,17 @@ abstract class BaseWeapon implements WeaponInstance {
     protected getNearestEnemy(x: number, y: number, enemies: Enemy[]) {
         let nearest: Enemy | null = null;
         let minDist = Infinity;
+        const margin = 50; // Small margin to allow shooting slightly off-screen enemies if needed, or stick strictly to viewport
+        
         for (const enemy of enemies) {
+            // Check visibility
+            if (enemy.container.x < -margin || 
+                enemy.container.x > window.innerWidth + margin || 
+                enemy.container.y < -margin || 
+                enemy.container.y > window.innerHeight + margin) {
+                continue;
+            }
+
             const dx = enemy.container.x - x;
             const dy = enemy.container.y - y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -241,7 +251,14 @@ export class OrbitalLaser extends BaseWeapon {
         }
 
         this.lastFireTime = now;
-        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        const visibleEnemies = enemies.filter(enemy => 
+            enemy.container.x >= -50 && 
+            enemy.container.x <= window.innerWidth + 50 && 
+            enemy.container.y >= -50 && 
+            enemy.container.y <= window.innerHeight + 50
+        );
+        
+        const target = visibleEnemies[Math.floor(Math.random() * visibleEnemies.length)];
         if (!target) {
             return [];
         }
