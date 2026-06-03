@@ -90,11 +90,11 @@ export class Player extends Entity {
 
     private getTextureForStage(stageIndex: number): string {
         switch (stageIndex) {
-            case 1: return 'src/assets/characters/marine/marine-veteran.png';
-            case 2: return 'src/assets/characters/marine/heavy-trooper.png';
-            case 3: return 'src/assets/characters/marine/siege-commander.png';
-            case 4: return 'src/assets/characters/marine/dominion-general.png';
-            default: return 'src/assets/characters/marine/marine-recruit.png';
+            case 1: return '/characters/marine/marine-veteran.png';
+            case 2: return '/characters/marine/heavy-trooper.png';
+            case 3: return '/characters/marine/siege-commander.png';
+            case 4: return '/characters/marine/dominion-general.png';
+            default: return '/characters/marine/marine-recruit.png';
         }
     }
 

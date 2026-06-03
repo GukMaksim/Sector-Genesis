@@ -55,13 +55,13 @@ export class GameEngine {
 
         // Preload assets
         await PIXI.Assets.load([
-            'src/assets/characters/marine/marine-recruit.png',
-            'src/assets/characters/marine/marine-veteran.png',
-            'src/assets/characters/marine/heavy-trooper.png',
-            'src/assets/characters/marine/siege-commander.png',
-            'src/assets/characters/marine/dominion-general.png',
-            'src/assets/characters/monsters/monster1.png',
-            'src/assets/characters/monsters/monster2.png'
+            '/characters/marine/marine-recruit.png',
+            '/characters/marine/marine-veteran.png',
+            '/characters/marine/heavy-trooper.png',
+            '/characters/marine/siege-commander.png',
+            '/characters/marine/dominion-general.png',
+            '/characters/monsters/monster1.png',
+            '/characters/monsters/monster2.png'
         ]);
 
         // Initialize entities
