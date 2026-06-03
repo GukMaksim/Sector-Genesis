@@ -64,7 +64,7 @@ export class Zergling extends Enemy {
     }
 
     private setupAnimations() {
-        const texture = PIXI.Assets.get('src/assets/characters/monsters/monster1.png');
+        const texture = PIXI.Assets.get('/characters/monsters/monster1.png');
         if (!texture) {
             console.error('Monster texture not found!');
             return;
@@ -171,7 +171,7 @@ export class Mutalisk extends Enemy {
     }
 
     private setupAnimations() {
-        const texture = PIXI.Assets.get('src/assets/characters/monsters/monster2.png');
+        const texture = PIXI.Assets.get('/characters/monsters/monster2.png');
         if (!texture) {
             console.error('Monster 2 texture not found!');
             return;
