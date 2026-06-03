@@ -45,7 +45,7 @@ export class Zergling extends Enemy {
     private spriteContainer: PIXI.Container;
     private shadow: PIXI.Graphics;
     
-    private spriteScale: number = 0.5;
+    private spriteScale: number = 0.4;
 
     constructor(x: number, y: number) {
         super(x, y);
@@ -152,7 +152,7 @@ export class Mutalisk extends Enemy {
     private spriteContainer: PIXI.Container;
     private shadow: PIXI.Graphics;
     
-    private spriteScale: number = 0.55;
+    private spriteScale: number = 0.4;
 
     constructor(x: number, y: number) {
         super(x, y);

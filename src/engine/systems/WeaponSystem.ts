@@ -48,6 +48,9 @@ abstract class BaseWeapon implements WeaponInstance {
         const margin = 50; // Small margin to allow shooting slightly off-screen enemies if needed, or stick strictly to viewport
         
         for (const enemy of enemies) {
+            // Safety check for destroyed enemies
+            if (enemy.isDestroyed) continue;
+
             // Check visibility
             if (enemy.container.x < -margin || 
                 enemy.container.x > window.innerWidth + margin || 
@@ -252,6 +255,7 @@ export class OrbitalLaser extends BaseWeapon {
 
         this.lastFireTime = now;
         const visibleEnemies = enemies.filter(enemy => 
+            !enemy.isDestroyed &&
             enemy.container.x >= -50 && 
             enemy.container.x <= window.innerWidth + 50 && 
             enemy.container.y >= -50 && 
@@ -278,6 +282,8 @@ export class OrbitalLaser extends BaseWeapon {
 
         const radius = 80 + this.level * 15;
         for (const enemy of enemies) {
+            if (enemy.isDestroyed) continue;
+
             const dx = enemy.container.x - tx;
             const dy = enemy.container.y - ty;
             const dist = Math.sqrt(dx * dx + dy * dy);

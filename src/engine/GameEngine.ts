@@ -85,6 +85,9 @@ export class GameEngine {
         const margin = 50;
 
         for (const e of this.enemies) {
+            // Safety check
+            if (e.isDestroyed) continue;
+
             // Check visibility
             if (e.container.x < -margin || 
                 e.container.x > window.innerWidth + margin || 
