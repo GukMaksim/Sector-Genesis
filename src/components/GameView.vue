@@ -1,5 +1,7 @@
 <template>
   <div id="game-container" class="game-shell">
+    <MobileJoystick class="mobile-only" />
+
     <div v-if="!loading" class="hud-layer">
       <header class="hud-top">
         <section class="hud-brand panel panel--accent panel--compact">
@@ -197,6 +199,7 @@
 import { onMounted, ref, computed } from 'vue';
 import { GameEngine } from '../engine/GameEngine';
 import { useGameStore } from '../stores/gameStore';
+import MobileJoystick from './MobileJoystick.vue';
 
 const loading = ref(true);
 const gameStore = useGameStore();

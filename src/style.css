@@ -1034,3 +1034,13 @@ body::after {
     min-width: 130px;
   }
 }
+
+.mobile-only {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .mobile-only {
+    display: block;
+  }
+}

@@ -3,6 +3,7 @@ export class InputManager {
     private keys: { [key: string]: boolean } = {};
     public mousePos = { x: 0, y: 0 };
     private mouseButtons: { [button: number]: boolean } = {};
+    private touchVector = { x: 0, y: 0 };
 
     private constructor() {
         window.addEventListener('keydown', (e) => this.keys[e.code] = true);
@@ -20,6 +21,7 @@ export class InputManager {
         window.addEventListener('blur', () => {
             this.keys = {};
             this.mouseButtons = {};
+            this.touchVector = { x: 0, y: 0 };
         });
     }
 
@@ -28,6 +30,10 @@ export class InputManager {
             InputManager.instance = new InputManager();
         }
         return InputManager.instance;
+    }
+
+    public setTouchVector(x: number, y: number) {
+        this.touchVector = { x, y };
     }
 
     public isKeyDown(code: string): boolean {
@@ -72,8 +78,8 @@ export class InputManager {
         const keyboardVector = this.getKeyboardVector();
         const mouseVector = this.getMouseVector();
         const vector = {
-            x: keyboardVector.x + mouseVector.x,
-            y: keyboardVector.y + mouseVector.y,
+            x: keyboardVector.x + mouseVector.x + this.touchVector.x,
+            y: keyboardVector.y + mouseVector.y + this.touchVector.y,
         };
 
         if (vector.x !== 0 || vector.y !== 0) {
