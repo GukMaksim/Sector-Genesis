@@ -6,6 +6,7 @@ export abstract class Enemy extends Entity {
     public abstract speed: number;
     public abstract damage: number;
     public abstract xpValue: number;
+    public isBoss: boolean = false;
 
     protected animationTime: number = Math.random() * 100;
 
@@ -142,6 +143,20 @@ export class Zergling extends Enemy {
     }
 }
 
+export class BossZergling extends Zergling {
+    public health: number = 200;
+    public speed: number = 3;
+    public damage: number = 20;
+    public xpValue: number = 100;
+    public override isBoss: boolean = true;
+
+    constructor(x: number, y: number) {
+        super(x, y);
+        // Scale visual
+        this.container.scale.set(2.0);
+    }
+}
+
 export class Mutalisk extends Enemy {
     public health: number = 15;
     public speed: number = 4;
@@ -250,5 +265,19 @@ export class Mutalisk extends Enemy {
             }
             this.setDirection(newDir);
         }
+    }
+}
+
+export class BossMutalisk extends Mutalisk {
+    public health: number = 150;
+    public speed: number = 6;
+    public damage: number = 15;
+    public xpValue: number = 200;
+    public override isBoss: boolean = true;
+
+    constructor(x: number, y: number) {
+        super(x, y);
+        // Scale visual
+        this.container.scale.set(2.0);
     }
 }

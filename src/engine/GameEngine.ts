@@ -123,7 +123,7 @@ export class GameEngine {
             this.player.container.y, 
             this.enemies, 
             this.app.stage,
-            (x, y, xp) => this.handleEnemyKilled(x, y, xp)
+            (enemy: Enemy) => this.handleEnemyKilled(enemy)
         );
         this.projectiles.push(...newProjectiles);
 
@@ -168,24 +168,22 @@ export class GameEngine {
             
             enemy.updateWithPlayer(delta, this.player!.container);
 
-            // Collision with projectiles
+                    // Collision with projectiles
             for (const p of this.projectiles) {
                 if (p.isDestroyed) continue;
                 const dx = p.container.x - enemy.container.x;
                 const dy = p.container.y - enemy.container.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 25) {
-                    const hitX = enemy.container.x;
-                    const hitY = enemy.container.y;
-                    const hitXp = enemy.xpValue;
+                    // Capture position before taking damage/potential destruction
+                    const deathX = enemy.container.x;
+                    const deathY = enemy.container.y;
+
                     let directHitKilledEnemy = false;
 
                     if (p.splashRadius > 0) {
                         for (const splashEnemy of this.enemies) {
                             if (splashEnemy.isDestroyed) continue;
-                            const splashX = splashEnemy.container.x;
-                            const splashY = splashEnemy.container.y;
-                            const splashXp = splashEnemy.xpValue;
                             const sx = splashEnemy.container.x - p.container.x;
                             const sy = splashEnemy.container.y - p.container.y;
                             const splashDist = Math.sqrt(sx * sx + sy * sy);
@@ -193,7 +191,7 @@ export class GameEngine {
                                 const falloff = 1 - Math.min(1, splashDist / p.splashRadius) * 0.35;
                                 splashEnemy.takeDamage(p.damage * falloff);
                                 if (splashEnemy.isDestroyed) {
-                                    this.handleEnemyKilled(splashX, splashY, splashXp);
+                                    this.handleEnemyKilled(splashEnemy, splashEnemy.container?.x ?? 0, splashEnemy.container?.y ?? 0);
                                 }
                             }
                         }
@@ -205,13 +203,13 @@ export class GameEngine {
                     
                     if (enemy.isDestroyed) {
                         if (directHitKilledEnemy) {
-                            this.handleEnemyKilled(hitX, hitY, hitXp);
+                            this.handleEnemyKilled(enemy, deathX, deathY);
                         }
                         return false;
                     }
 
                     if (directHitKilledEnemy) {
-                        this.handleEnemyKilled(hitX, hitY, hitXp);
+                        this.handleEnemyKilled(enemy, deathX, deathY);
                         return false;
                     }
                 }
@@ -241,10 +239,30 @@ export class GameEngine {
         return this.app.renderer;
     }
 
-    private handleEnemyKilled(x: number, y: number, xp: number) {
-        const gem = new XpGem(x, y, xp);
-        this.xpGems.push(gem);
-        this.app.stage.addChild(gem.container);
+    private handleEnemyKilled(enemy: Enemy, cachedX?: number, cachedY?: number) {
+        // Safe access: If cached coordinates are provided, use them; 
+        // otherwise, try to safely access enemy.container.
+        const x = cachedX ?? enemy.container?.x ?? 0;
+        const y = cachedY ?? enemy.container?.y ?? 0;
+        const xp = enemy.xpValue;
+        const isBoss = enemy.isBoss;
+
+        if (isBoss) {
+            for (let i = 0; i < 50; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 50;
+                const gemX = x + Math.cos(angle) * dist;
+                const gemY = y + Math.sin(angle) * dist;
+                const gem = new XpGem(gemX, gemY, Math.floor(xp / 50));
+                this.xpGems.push(gem);
+                this.app.stage.addChild(gem.container);
+            }
+        } else {
+            const gem = new XpGem(x, y, xp);
+            this.xpGems.push(gem);
+            this.app.stage.addChild(gem.container);
+        }
+        
         this.gameStore.kills++;
 
         const lifesteal = this.gameStore.stats.lifesteal;

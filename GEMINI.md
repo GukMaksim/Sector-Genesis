@@ -43,6 +43,8 @@ The project is structured to separate game logic from UI and state:
 - [x] XP & Level-up System
 - [x] Upgrade Selection UI
 - [x] HUD & Game Over screens
+- [x] Boss Encounters (5m Zergling, 10m Mutalisk)
+- [x] Boss Loot (Increased XP gems)
 - [ ] Persistent Save System (LocalStorage)
 - [ ] Advanced Visual Effects (Particles, Screen Shake)
 - [ ] Additional Races (Psionics, Bioforms)

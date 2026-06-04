@@ -7,7 +7,7 @@ import type { WeaponId } from '../../types/game';
 export interface WeaponInstance {
     id: WeaponId;
     level: number;
-    update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (x: number, y: number, xp: number) => void): Projectile[];
+    update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[];
 }
 
 type Direction = { x: number; y: number };
@@ -23,7 +23,7 @@ abstract class BaseWeapon implements WeaponInstance {
     protected lastFireTime = 0;
     protected gameStore = useGameStore();
 
-    public abstract update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (x: number, y: number, xp: number) => void): Projectile[];
+    public abstract update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[];
 
     protected getDamage(baseDamage: number) {
         const crit = Math.random() < this.gameStore.stats.criticalChance;
@@ -245,7 +245,7 @@ export class PlasmaCannon extends BaseWeapon {
 export class OrbitalLaser extends BaseWeapon {
     public id: WeaponId = 'orbital_laser';
 
-    public update(_x: number, _y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (x: number, y: number, xp: number) => void): Projectile[] {
+    public update(_x: number, _y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[] {
         const cooldown = 3000 / (1 + this.level * 0.2);
         const now = Date.now();
 
@@ -271,7 +271,7 @@ export class OrbitalLaser extends BaseWeapon {
         return [];
     }
 
-    private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: (x: number, y: number, xp: number) => void) {
+    private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: (enemy: Enemy) => void) {
         const laser = new PIXI.Graphics();
         laser.rect(-4, -1000, 8, 1000);
         laser.fill(0x00f2ff);
@@ -288,14 +288,10 @@ export class OrbitalLaser extends BaseWeapon {
             const dy = enemy.container.y - ty;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < radius) {
-                const enemyX = enemy.container.x;
-                const enemyY = enemy.container.y;
-                const exp = enemy.xpValue;
-
                 enemy.takeDamage(100 * (1 + this.level * 0.5));
 
                 if (enemy.isDestroyed && onEnemyKilled) {
-                    onEnemyKilled(enemyX, enemyY, exp);
+                    onEnemyKilled(enemy);
                 }
             }
         }
@@ -323,7 +319,7 @@ export class WeaponSystem {
         this.equipped.push(new GaussRifle());
     }
 
-    public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (x: number, y: number, xp: number) => void): Projectile[] {
+    public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[] {
         const allProjectiles: Projectile[] = [];
         for (const weapon of this.equipped) {
             const newProjectiles = weapon.update(x, y, enemies, stage, onEnemyKilled);
