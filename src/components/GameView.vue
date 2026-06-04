@@ -188,22 +188,6 @@ const gameStore = useGameStore();
 const engineInstance = ref<GameEngine | null>(null);
 const activeBranchId = ref('command');
 
-const playerHealthPercentage = computed(() => {
-    if (!engineInstance.value?.player) return 100;
-    return (engineInstance.value.player.currentHealth / engineInstance.value.player.maxHealth) * 100;
-});
-
-const clampedPlayerHealthPercentage = computed(() => Math.min(100, Math.max(0, playerHealthPercentage.value)));
-
-const playerHealthCritical = computed(() => playerHealthPercentage.value < 35);
-
-const playerHealthText = computed(() => {
-  if (playerHealthPercentage.value <= 0) return 'OFFLINE';
-  if (playerHealthPercentage.value < 35) return 'CRITICAL';
-  if (playerHealthPercentage.value < 70) return 'DAMAGED';
-  return 'STABLE';
-});
-
 const clampedXpPercentage = computed(() => Math.min(100, Math.max(0, gameStore.xpPercentage)));
 
 const formattedTime = computed(() => {
