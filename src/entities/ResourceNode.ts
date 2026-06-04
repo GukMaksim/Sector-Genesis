@@ -72,7 +72,7 @@ export class ResourceNode extends Entity {
         this.healthBar.visible = false;
     }
 
-    public update(delta: number) {
+    public update(_delta: number) {
         // Unused directly as we update in engine with player reference
     }
 
