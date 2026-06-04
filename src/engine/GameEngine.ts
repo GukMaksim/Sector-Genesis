@@ -3,6 +3,7 @@ import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { XpGem } from '../entities/XpGem';
+import { ResourceNode } from '../entities/ResourceNode';
 import { BackgroundSystem } from './systems/BackgroundSystem';
 import { InputManager } from './managers/InputManager';
 import { WeaponSystem } from './systems/WeaponSystem';
@@ -21,6 +22,7 @@ export class GameEngine {
     public enemies: Enemy[] = [];
     public projectiles: Projectile[] = [];
     public xpGems: XpGem[] = [];
+    public resourceNodes: ResourceNode[] = [];
     
     private input: InputManager;
     private gameStore = useGameStore();
@@ -67,6 +69,9 @@ export class GameEngine {
         // Initialize entities
         this.player = new Player();
         this.app.stage.addChild(this.player.container);
+
+        // Spawn initial resource nodes
+        this.spawnInitialResourceNodes();
 
         // Main game loop
         this.app.ticker.add((ticker) => {
@@ -159,6 +164,38 @@ export class GameEngine {
             return true;
         });
 
+        // 6b. Update Resource Nodes
+        this.resourceNodes = this.resourceNodes.filter(node => {
+            node.container.x -= playerVelX;
+            node.container.y -= playerVelY;
+            node.updateWithPlayer(delta, this.player!.container, this.app.ticker.deltaMS);
+
+            const dx = node.container.x - this.player!.container.x;
+            const dy = node.container.y - this.player!.container.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Cull if extremely far away (e.g. > 3000px)
+            if (dist > 3000) {
+                node.destroy();
+                return false;
+            }
+            return true;
+        });
+
+        // Spawn new cluster dynamically
+        if (this.resourceNodes.length < 15 && Math.random() < 0.005) {
+            const move = this.input.movementVector;
+            let spawnAngle = Math.random() * Math.PI * 2;
+            if (move.x !== 0 || move.y !== 0) {
+                const baseAngle = Math.atan2(move.y, move.x);
+                spawnAngle = baseAngle + (Math.random() - 0.5) * Math.PI * 0.5;
+            }
+            const radius = Math.max(window.innerWidth, window.innerHeight) * 0.9;
+            const cx = this.player!.container.x + Math.cos(spawnAngle) * radius;
+            const cy = this.player!.container.y + Math.sin(spawnAngle) * radius;
+            this.spawnResourceCluster(cx, cy);
+        }
+
         // 7. Update Enemies & Collision
         this.enemies = this.enemies.filter(enemy => {
             if (enemy.isDestroyed) return false;
@@ -188,10 +225,12 @@ export class GameEngine {
                             const sy = splashEnemy.container.y - p.container.y;
                             const splashDist = Math.sqrt(sx * sx + sy * sy);
                             if (splashDist <= p.splashRadius) {
+                                const splashEnemyX = splashEnemy.container.x;
+                                const splashEnemyY = splashEnemy.container.y;
                                 const falloff = 1 - Math.min(1, splashDist / p.splashRadius) * 0.35;
                                 splashEnemy.takeDamage(p.damage * falloff);
                                 if (splashEnemy.isDestroyed) {
-                                    this.handleEnemyKilled(splashEnemy, splashEnemy.container?.x ?? 0, splashEnemy.container?.y ?? 0);
+                                    this.handleEnemyKilled(splashEnemy, splashEnemyX, splashEnemyY);
                                 }
                             }
                         }
@@ -268,6 +307,42 @@ export class GameEngine {
         const lifesteal = this.gameStore.stats.lifesteal;
         if (lifesteal > 0 && this.player) {
             this.player.currentHealth = Math.min(this.player.maxHealth, this.player.currentHealth + lifesteal * 2);
+        }
+    }
+
+    private spawnInitialResourceNodes() {
+        const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        
+        // Spawn 4 clusters at different angles around center
+        const numClusters = 4;
+        for (let i = 0; i < numClusters; i++) {
+            const angle = (i / numClusters) * Math.PI * 2 + Math.random() * 0.5;
+            const distance = 400 + Math.random() * 400;
+            const cx = center.x + Math.cos(angle) * distance;
+            const cy = center.y + Math.sin(angle) * distance;
+            this.spawnResourceCluster(cx, cy);
+        }
+    }
+
+    public spawnResourceCluster(clusterX: number, clusterY: number) {
+        // Spawn 3-5 mineral nodes in a cluster
+        const numMinerals = 3 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < numMinerals; j++) {
+            const offsetX = (Math.random() - 0.5) * 80;
+            const offsetY = (Math.random() - 0.5) * 80;
+            const node = new ResourceNode(clusterX + offsetX, clusterY + offsetY, 'mineral');
+            this.resourceNodes.push(node);
+            this.app.stage.addChild(node.container);
+        }
+        
+        // Spawn 1-2 gas nodes in the cluster
+        const numGas = 1 + Math.floor(Math.random() * 2);
+        for (let j = 0; j < numGas; j++) {
+            const offsetX = (Math.random() - 0.5) * 120;
+            const offsetY = (Math.random() - 0.5) * 120;
+            const node = new ResourceNode(clusterX + offsetX, clusterY + offsetY, 'gas');
+            this.resourceNodes.push(node);
+            this.app.stage.addChild(node.container);
         }
     }
 }

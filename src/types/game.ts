@@ -69,6 +69,8 @@ export interface SkillTreeNodeConfig {
     name: string;
     description: string;
     cost: number;
+    mineralCost: number;
+    gasCost: number;
     maxRank: number;
     prerequisites?: string[];
     effects: SkillEffect[];

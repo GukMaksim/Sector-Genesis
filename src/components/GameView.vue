@@ -1,6 +1,7 @@
 <template>
   <div id="game-container" class="game-shell">
     <MobileJoystick class="mobile-only" />
+    <WeaponHotbar />
 
     <div v-if="!loading" class="hud-layer">
       <header class="hud-top">
@@ -10,7 +11,8 @@
           <div class="stage-meta stage-meta--compact">
             <span class="pill pill--blue">LV {{ gameStore.level }}</span>
             <span class="pill">{{ formattedTime }}</span>
-            <span class="pill pill--muted">{{ gameStore.skillPoints }} CP</span>
+            <span class="pill pill--mineral">💎 {{ Math.floor(gameStore.minerals) }}</span>
+            <span class="pill pill--gas">🟢 {{ Math.floor(gameStore.gas) }}</span>
           </div>
         </section>
 
@@ -47,9 +49,15 @@
         </div>
 
         <div class="tree-topline">
-          <div class="tree-points panel panel--compact">
-            <span class="panel-kicker">AVAILABLE POINTS</span>
-            <strong>{{ gameStore.skillPoints }}</strong>
+          <div class="tree-points panel panel--compact" style="display: flex; gap: 16px; align-items: center;">
+            <div>
+              <span class="panel-kicker" style="color: #00f2ff;">MINERALS</span>
+              <strong style="color: #00f2ff; font-size: 1.4rem;">{{ Math.floor(gameStore.minerals) }}</strong>
+            </div>
+            <div>
+              <span class="panel-kicker" style="color: #5bfb88;">VESPENE GAS</span>
+              <strong style="color: #5bfb88; font-size: 1.4rem;">{{ Math.floor(gameStore.gas) }}</strong>
+            </div>
           </div>
           <div class="tree-loadout panel panel--compact">
             <span class="panel-kicker">CURRENT LOADOUT</span>
@@ -99,7 +107,7 @@
             >
               <div class="skill-node__top">
                 <span class="skill-node__tag">{{ node.tag }}</span>
-                <span class="skill-node__cost">COST {{ node.cost }} CP</span>
+                <span class="skill-node__cost" style="font-size: 0.65rem; letter-spacing: 0;">💎{{ node.mineralCost }} / 🟢{{ node.gasCost }}</span>
                 <span class="skill-node__rank">RANK {{ node.rank }}/{{ node.maxRank }}</span>
               </div>
               <div class="skill-node__name">{{ node.name }}</div>
@@ -118,7 +126,7 @@
         </div>
 
         <div class="tree-footer">
-          <span>{{ gameStore.skillPoints > 0 ? `${gameStore.skillPoints} point(s) remaining` : 'No points remaining' }}</span>
+          <span>Resources are gathered by standing near mineral patches and gas geysers</span>
           <button class="cta-button cta-button--secondary" @click="continueBattle">
             Continue Battle
           </button>
@@ -182,6 +190,7 @@ import { onMounted, ref, computed } from 'vue';
 import { GameEngine } from '../engine/GameEngine';
 import { useGameStore } from '../stores/gameStore';
 import MobileJoystick from './MobileJoystick.vue';
+import WeaponHotbar from './WeaponHotbar.vue';
 
 const loading = ref(true);
 const gameStore = useGameStore();

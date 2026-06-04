@@ -262,6 +262,20 @@ body::after {
   border-color: rgba(0, 242, 255, 0.6);
 }
 
+.pill--mineral {
+  border-color: rgba(0, 242, 255, 0.4);
+  color: #00f2ff;
+  font-weight: bold;
+  background: rgba(0, 242, 255, 0.08);
+}
+
+.pill--gas {
+  border-color: rgba(91, 251, 136, 0.4);
+  color: #5bfb88;
+  font-weight: bold;
+  background: rgba(91, 251, 136, 0.08);
+}
+
 
 .hud-core {
   padding: 10px 12px;

@@ -45,12 +45,13 @@ const flattenSkillTree = () => SKILL_TREE_CONFIG.flatMap((branch) => branch.node
 
 const isNodeUnlockable = (
     unlockedSkillNodes: Record<string, number>,
-    skillPoints: number,
+    minerals: number,
+    gas: number,
     node: SkillTreeNodeConfig,
 ) => {
     const rank = unlockedSkillNodes[node.id] ?? 0;
     const prerequisitesMet = node.prerequisites?.every((prerequisite) => (unlockedSkillNodes[prerequisite] ?? 0) > 0) ?? true;
-    return skillPoints >= node.cost && rank < node.maxRank && prerequisitesMet;
+    return minerals >= node.mineralCost && gas >= node.gasCost && rank < node.maxRank && prerequisitesMet;
 };
 
 export const useGameStore = defineStore('game', {
@@ -64,6 +65,9 @@ export const useGameStore = defineStore('game', {
         time: 0,
         credits: 0,
         skillPoints: 0,
+        minerals: 0,
+        gas: 0,
+        activeWeaponId: 'gauss_rifle' as WeaponId,
         isGameOver: false,
         isPaused: false,
         showUpgradeOverlay: false,
@@ -85,7 +89,7 @@ export const useGameStore = defineStore('game', {
                     const rank = this.unlockedSkillNodes[node.id] ?? 0;
                     const prerequisitesMet = node.prerequisites?.every((prerequisite) => (this.unlockedSkillNodes[prerequisite] ?? 0) > 0) ?? true;
                     const locked = !prerequisitesMet;
-                    const available = prerequisitesMet && rank < node.maxRank && this.skillPoints >= node.cost;
+                    const available = prerequisitesMet && rank < node.maxRank && this.minerals >= node.mineralCost && this.gas >= node.gasCost;
 
                     return {
                         ...node,
@@ -116,7 +120,7 @@ export const useGameStore = defineStore('game', {
             });
         },
         availableSkillNodes(): SkillTreeNodeConfig[] {
-            return flattenSkillTree().filter((node) => isNodeUnlockable(this.unlockedSkillNodes, this.skillPoints, node));
+            return flattenSkillTree().filter((node) => isNodeUnlockable(this.unlockedSkillNodes, this.minerals, this.gas, node));
         },
     },
     actions: {
@@ -136,15 +140,13 @@ export const useGameStore = defineStore('game', {
             if (nextStage && this.level >= nextStage.level) {
                 this.currentStageIndex++;
             }
-
-            this.skillPoints += 1;
         },
         closeUpgradeOverlay() {
             this.showUpgradeOverlay = false;
             this.isPaused = false;
         },
         canUnlockNode(node: SkillTreeNodeConfig) {
-            return isNodeUnlockable(this.unlockedSkillNodes, this.skillPoints, node);
+            return isNodeUnlockable(this.unlockedSkillNodes, this.minerals, this.gas, node);
         },
         unlockSkillNode(nodeId: string) {
             const node = flattenSkillTree().find((candidate) => candidate.id === nodeId);
@@ -152,15 +154,12 @@ export const useGameStore = defineStore('game', {
                 return false;
             }
 
-            this.skillPoints -= node.cost;
+            this.minerals -= node.mineralCost;
+            this.gas -= node.gasCost;
             this.unlockedSkillNodes[node.id] = (this.unlockedSkillNodes[node.id] ?? 0) + 1;
 
             for (const effect of node.effects) {
                 this.applySkillEffect(effect);
-            }
-
-            if (this.skillPoints <= 0) {
-                this.closeUpgradeOverlay();
             }
 
             return true;
@@ -207,6 +206,17 @@ export const useGameStore = defineStore('game', {
                 this.unlockedWeapons.push(weaponId);
             }
         },
+        setActiveWeapon(weaponId: WeaponId) {
+            if (this.unlockedWeapons.includes(weaponId) && weaponId !== 'orbital_laser') {
+                this.activeWeaponId = weaponId;
+            }
+        },
+        addMinerals(amount: number) {
+            this.minerals += amount;
+        },
+        addGas(amount: number) {
+            this.gas += amount;
+        },
         heal(amount: number) {
             const engine = (window as any).gameEngine;
             if (!engine?.player) {
@@ -222,7 +232,11 @@ export const useGameStore = defineStore('game', {
             this.currentStageIndex = 0;
             this.kills = 0;
             this.time = 0;
+            this.credits = 0;
             this.skillPoints = 0;
+            this.minerals = 0;
+            this.gas = 0;
+            this.activeWeaponId = 'gauss_rifle';
             this.isGameOver = false;
             this.isPaused = false;
             this.showUpgradeOverlay = false;

@@ -321,10 +321,20 @@ export class WeaponSystem {
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[] {
         const allProjectiles: Projectile[] = [];
-        for (const weapon of this.equipped) {
-            const newProjectiles = weapon.update(x, y, enemies, stage, onEnemyKilled);
+        const activeId = useGameStore().activeWeaponId;
+        const activeWeapon = this.equipped.find((weapon) => weapon.id === activeId);
+        if (activeWeapon && activeId !== 'orbital_laser') {
+            const newProjectiles = activeWeapon.update(x, y, enemies, stage, onEnemyKilled);
             allProjectiles.push(...newProjectiles);
         }
+        
+        // Orbital laser is a support weapon that fires automatically in the background when unlocked
+        const orbitalLaser = this.equipped.find((weapon) => weapon.id === 'orbital_laser');
+        if (orbitalLaser) {
+            const newProjectiles = orbitalLaser.update(x, y, enemies, stage, onEnemyKilled);
+            allProjectiles.push(...newProjectiles);
+        }
+        
         return allProjectiles;
     }
 
