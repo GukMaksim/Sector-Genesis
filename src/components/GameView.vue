@@ -18,38 +18,20 @@
           <div class="hud-core__label-row">
             <span class="panel-kicker">XP</span>
             <span class="hud-core__value">{{ Math.floor(gameStore.xpPercentage) }}%</span>
+            
           </div>
           <div class="progress-track progress-track--xp">
             <div
               class="progress-fill progress-fill--xp"
               :style="{ width: `${clampedXpPercentage}%` }"
-            />
+            ></div>
           </div>
+          <button class="pill pill--cta" @click="openUpgradeMenu">UPGRADES</button>
         </section>
 
-        <section class="hud-right panel panel--stats panel--compact">
-          <div class="mini-stat mini-stat--bar">
-            <div class="mini-stat__row">
-              <span class="mini-stat__label">SHIELD</span>
-              <span class="mini-stat__value mini-stat__value--small">{{ Math.ceil(clampedPlayerHealthPercentage) }}%</span>
-            </div>
-            <div class="progress-track progress-track--health" :class="{ 'is-critical': playerHealthCritical }">
-              <div
-                class="progress-fill progress-fill--health"
-                :style="{ width: `${clampedPlayerHealthPercentage}%` }"
-              />
-            </div>
-          </div>
-          <div class="mini-stat-grid">
-            <div class="mini-stat mini-stat--tiny">
-              <span class="mini-stat__label">KILLS</span>
-              <span class="mini-stat__value">{{ gameStore.kills }}</span>
-            </div>
-            <div class="mini-stat mini-stat--tiny">
-              <span class="mini-stat__label">HP</span>
-              <span class="mini-stat__value">{{ playerHealthText }}</span>
-            </div>
-          </div>
+        <section class="hud-right panel panel--compact">
+          <span class="mini-stat__label">KILLS</span>
+          <span class="mini-stat__value">{{ gameStore.kills }}</span>
         </section>
       </header>
     </div>
@@ -232,6 +214,11 @@ const formattedTime = computed(() => {
 });
 
 const weaponLoadout = computed(() => gameStore.equippedWeaponNames);
+
+const openUpgradeMenu = () => {
+  gameStore.isPaused = true;
+  gameStore.showUpgradeOverlay = true;
+};
 
 const activeBranch = computed(() => gameStore.skillTreeBranches.find((branch) => branch.id === activeBranchId.value) ?? gameStore.skillTreeBranches[0]);
 

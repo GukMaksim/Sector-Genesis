@@ -107,10 +107,17 @@ body::after {
 
 .hud-top {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) minmax(220px, 0.9fr);
+  grid-template-columns: 3fr 3fr 1fr;
   gap: 8px;
   align-items: stretch;
-  grid-template-columns: max-content;
+}
+
+.hud-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .hud-bottom {
@@ -241,11 +248,20 @@ body::after {
   color: var(--text-muted);
 }
 
-.pill--weapon {
-  color: rgba(255, 218, 148, 0.96);
-  border-color: rgba(255, 191, 60, 0.2);
-  background: rgba(255, 191, 60, 0.06);
+.pill--cta {
+  pointer-events: auto;
+  cursor: pointer;
+  border-color: rgba(0, 242, 255, 0.4);
+  background: rgba(0, 242, 255, 0.1);
+  transition: background 180ms ease, border-color 180ms ease;
+  margin-top: 0.5rem;
 }
+
+.pill--cta:hover {
+  background: rgba(0, 242, 255, 0.2);
+  border-color: rgba(0, 242, 255, 0.6);
+}
+
 
 .hud-core {
   padding: 10px 12px;
@@ -430,7 +446,9 @@ body::after {
 }
 
 .overlay-shell--tree {
-  width: min(1160px, 100%);
+  width: min(1200px, 95vw);
+  max-height: 90vh;
+  padding: 10px;
 }
 
 .overlay-shell--gameover {
@@ -440,7 +458,7 @@ body::after {
 .overlay-header {
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .overlay-header--center {
@@ -460,7 +478,6 @@ body::after {
 }
 
 .overlay-copy {
-  max-width: 64ch;
   color: var(--text-muted);
   margin: 0;
   font-size: 0.82rem;
@@ -478,7 +495,7 @@ body::after {
 
 .tree-topline {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.4fr);
+  grid-template-columns: 1fr 3fr;
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -498,9 +515,7 @@ body::after {
 .tree-branchbar {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
   padding-bottom: 4px;
-  margin-bottom: 10px;
 }
 
 .branch-tab {
@@ -539,16 +554,15 @@ body::after {
 
 .tree-body {
   display: grid;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  grid-template-columns: 1fr 2fr;
   gap: 10px;
   min-height: 0;
   flex: 1;
 }
 
 .tree-summary {
-  padding: 12px;
-  display: grid;
-  gap: 8px;
+  padding: 6px 10px;
+  gap: 4px;
   align-self: start;
 }
 
@@ -583,7 +597,7 @@ body::after {
 
 .skill-node-list {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   overflow-y: auto;
   min-height: 0;
   padding-right: 2px;
@@ -628,9 +642,8 @@ body::after {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(12, 20, 33, 0.96), rgba(7, 12, 20, 0.9));
   color: var(--text-main);
-  padding: 12px;
-  display: grid;
-  gap: 8px;
+  padding: 6px 10px;
+  gap: 4px;
   cursor: pointer;
   transition:
     transform 180ms ease,
@@ -974,10 +987,10 @@ body::after {
 }
 
 @media (max-width: 1200px) {
-  .hud-top {
+/*   .hud-top {
     grid-template-columns: 1fr;
     grid-template-columns: max-content;
-  }
+  } */
 
   .upgrade-grid,
   .skill-tree-grid,
@@ -985,13 +998,6 @@ body::after {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tree-topline {
-    grid-template-columns: 1fr;
-  }
-
-  .tree-body {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 760px) {
@@ -999,10 +1005,10 @@ body::after {
     padding: 8px;
   }
 
-  .hud-top {
+/*   .hud-top {
     grid-template-columns: 1fr;
     gap: 4px;
-  }
+  } */
 
   .hud-brand {
     display: none; /* Hide brand on mobile to save space */

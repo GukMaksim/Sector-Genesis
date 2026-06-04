@@ -138,8 +138,6 @@ export const useGameStore = defineStore('game', {
             }
 
             this.skillPoints += 1;
-            this.isPaused = true;
-            this.showUpgradeOverlay = true;
         },
         closeUpgradeOverlay() {
             this.showUpgradeOverlay = false;
