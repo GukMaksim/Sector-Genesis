@@ -27,9 +27,12 @@ export class ResourceNode extends Entity {
         this.maxResources = nodeType === 'mineral' ? 25 : 25;
         this.remainingResources = this.maxResources;
 
-        const graphics = new PIXI.Graphics();
+        const sprite = new PIXI.Sprite(PIXI.Assets.get(nodeType === 'mineral' ? '/ui/field_minerals.png' : '/ui/field_gas.png'));
         this.glowFilter = new PIXI.Graphics();
         this.container.addChild(this.glowFilter);
+        this.container.addChild(sprite);
+        sprite.anchor.set(0.5);
+        sprite.scale.set(0.5); // Adjust scale as needed
 
         // Add resource amount label
         this.amountText = new PIXI.Text({
@@ -43,52 +46,14 @@ export class ResourceNode extends Entity {
             }
         });
         this.amountText.anchor.set(0.5);
-        this.amountText.y = -40; // Position above the node
+        this.amountText.y = -50; // Position above the sprite
         this.container.addChild(this.amountText);
 
-        if (nodeType === 'mineral') {
-            // Draw mineral crystal cluster (Terran blue crystals)
-            // Main crystal
-            graphics.poly([-12, 10, 0, -25, 12, 10, 0, 15]);
-            graphics.fill(0x00f2ff);
-            graphics.stroke({ width: 2, color: 0xffffff });
+        // Draw glow
+        this.glowFilter.circle(0, 0, nodeType === 'mineral' ? 30 : 35);
+        this.glowFilter.fill({ color: nodeType === 'mineral' ? 0x00f2ff : 0x5bfb88, alpha: 0.15 });
 
-            // Side crystals
-            graphics.poly([-22, 15, -12, -10, -5, 15]);
-            graphics.fill(0x00aeff);
-            graphics.stroke({ width: 1.5, color: 0x9be8ff });
-
-            graphics.poly([5, 15, 15, -5, 22, 15]);
-            graphics.fill(0x00aeff);
-            graphics.stroke({ width: 1.5, color: 0x9be8ff });
-            
-            // Draw glow
-            this.glowFilter.circle(0, 0, 30);
-            this.glowFilter.fill({ color: 0x00f2ff, alpha: 0.15 });
-        } else {
-            // Draw Vespene Gas Geyser (Green dome / vent)
-            // Geyser base
-            graphics.ellipse(0, 10, 25, 12);
-            graphics.fill(0x2a2f3a);
-            graphics.stroke({ width: 2.5, color: 0x111318 });
-
-            // Vent opening
-            graphics.ellipse(0, 4, 15, 6);
-            graphics.fill(0x1a8c3d);
-            graphics.stroke({ width: 2, color: 0x5bfb88 });
-
-            // Small green details
-            graphics.circle(-10, 12, 4);
-            graphics.fill(0x5bfb88);
-            graphics.circle(10, 8, 3);
-            graphics.fill(0x5bfb88);
-
-            // Draw glow
-            this.glowFilter.circle(0, 0, 35);
-            this.glowFilter.fill({ color: 0x5bfb88, alpha: 0.12 });
-        }
-
-        this.setVisual(graphics);
+        this.setVisual(sprite);
         
         // Hide health bar since resource nodes are invulnerable
         this.healthBar.visible = false;

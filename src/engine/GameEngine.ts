@@ -85,7 +85,9 @@ export class GameEngine {
             '/characters/marine/siege-commander.png',
             '/characters/marine/dominion-general.png',
             '/characters/monsters/monster1.png',
-            '/characters/monsters/monster2.png'
+            '/characters/monsters/monster2.png',
+            '/ui/field_minerals.png',
+            '/ui/field_gas.png'
         ]);
 
         // Initialize entities
@@ -222,8 +224,6 @@ export class GameEngine {
             
             // Cull if extremely far away (e.g. > 3000px)
             if (dist > 3000) {
-                // Also add to respawn queue if culled to keep total count stable
-                this.respawnQueue.push({ type: node.nodeType, time: Date.now() + 60000 });
                 node.destroy();
                 return false;
             }
@@ -234,16 +234,21 @@ export class GameEngine {
         const now = Date.now();
         this.respawnQueue = this.respawnQueue.filter(item => {
             if (now >= item.time) {
-                // Respawn in a random direction around player
+                // Respawn in a random location around player
                 const angle = Math.random() * Math.PI * 2;
-                const radius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
+                const radius = 600 + Math.random() * 400; // Spawn within a reasonable distance
                 const cx = this.player!.container.x + Math.cos(angle) * radius;
                 const cy = this.player!.container.y + Math.sin(angle) * radius;
 
                 if (item.type === 'mineral') {
-                    this.spawnMineralCluster(cx, cy);
+                    // Respawn a single node instead of a whole cluster
+                    const node = new ResourceNode(cx, cy, 'mineral');
+                    this.resourceNodes.push(node);
+                    this.nodesContainer.addChild(node.container);
                 } else {
-                    this.spawnGasCluster(cx, cy);
+                    const node = new ResourceNode(cx, cy, 'gas');
+                    this.resourceNodes.push(node);
+                    this.nodesContainer.addChild(node.container);
                 }
                 return false;
             }
