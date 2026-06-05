@@ -188,6 +188,11 @@ body::after {
   color: rgba(255, 133, 160, 0.95);
 }
 
+.res-icon {
+  width: 2rem;
+  margin-right: 0.5rem;
+}
+
 .stage-title,
 .overlay-title,
 .loading-title {
@@ -268,7 +273,6 @@ body::after {
 
 .pill--mineral {
   display: flex;
-  gap: 0.3rem;
   color: #00f2ff;
   font-weight: bold;
   align-items: center;
@@ -277,7 +281,6 @@ body::after {
 
 .pill--gas {
   display: flex;
-  gap: 0.3rem;
   color: #5bfb88;
   font-weight: bold;
   align-items: center;

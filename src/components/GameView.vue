@@ -52,11 +52,11 @@
         <div class="tree-topline">
           <div class="tree-points panel panel--compact" style="display: flex; gap: 16px; align-items: center;">
             <div class="panel-res">
-              <span class="panel-kicker" style="color: #00f2ff;"><img src=""></span>
+              <span class="panel-kicker" style="color: #00f2ff;"><img src="/ui/mineral.jpg" class="res-icon" /></span>
               <strong style="color: #00f2ff; font-size: 1.4rem;">{{ Math.floor(gameStore.minerals) }}</strong>
             </div>
             <div class="panel-res">
-              <span class="panel-kicker" style="color: #5bfb88;">🟢</span>
+              <span class="panel-kicker" style="color: #5bfb88;"><img src="/ui/gas.jpg" class="res-icon" /></span>
               <strong style="color: #5bfb88; font-size: 1.4rem;">{{ Math.floor(gameStore.gas) }}</strong>
             </div>
           </div>

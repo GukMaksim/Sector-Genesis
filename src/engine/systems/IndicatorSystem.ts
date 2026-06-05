@@ -82,7 +82,6 @@ export class IndicatorSystem {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         // Hide arrow if node is on screen or very close
-        const margin = 100;
         if (dist < 400) {
             arrow.alpha = Math.max(0, (dist - 150) / 250) * 0.6;
         } else {
