@@ -8,9 +8,12 @@ export class ResourceNode extends Entity {
     public nodeType: NodeType;
     public harvestRange: number = 80;
     public harvestRate: number; // per second
+    public remainingResources: number;
+    public maxResources: number;
     
     private gameStore = useGameStore();
     private glowFilter: PIXI.Graphics;
+    private amountText: PIXI.Text;
     private timer = 0;
     
     constructor(x: number, y: number, nodeType: NodeType) {
@@ -18,11 +21,30 @@ export class ResourceNode extends Entity {
         this.container.x = x;
         this.container.y = y;
         this.nodeType = nodeType;
-        this.harvestRate = nodeType === 'mineral' ? 18 : 8;
+        this.harvestRate = nodeType === 'mineral' ? 4 : 4;
+        
+        // Initial resource capacity
+        this.maxResources = nodeType === 'mineral' ? 25 : 25;
+        this.remainingResources = this.maxResources;
 
         const graphics = new PIXI.Graphics();
         this.glowFilter = new PIXI.Graphics();
         this.container.addChild(this.glowFilter);
+
+        // Add resource amount label
+        this.amountText = new PIXI.Text({
+            text: Math.floor(this.remainingResources).toString(),
+            style: {
+                fontFamily: 'Arial',
+                fontSize: 14,
+                fill: nodeType === 'mineral' ? 0x00f2ff : 0x5bfb88,
+                align: 'center',
+                stroke: { color: 0x000000, width: 3 }
+            }
+        });
+        this.amountText.anchor.set(0.5);
+        this.amountText.y = -40; // Position above the node
+        this.container.addChild(this.amountText);
 
         if (nodeType === 'mineral') {
             // Draw mineral crystal cluster (Terran blue crystals)
@@ -72,7 +94,7 @@ export class ResourceNode extends Entity {
         this.healthBar.visible = false;
     }
 
-    public update(delta: number) {
+    public update() {
         // Unused directly as we update in engine with player reference
     }
 
@@ -85,13 +107,17 @@ export class ResourceNode extends Entity {
 
         this.timer += delta * 0.05;
         
-        if (dist <= this.harvestRange) {
+        if (dist <= this.harvestRange && this.remainingResources > 0) {
             // Animate intense mining glow
             this.glowFilter.alpha = 0.5 + Math.sin(this.timer * 3) * 0.4;
             
             // Calculate resources harvested in this frame
             const dtSeconds = deltaMs / 1000;
-            const amount = this.harvestRate * dtSeconds;
+            let amount = this.harvestRate * dtSeconds;
+            
+            // Clamp to remaining resources
+            amount = Math.min(amount, this.remainingResources);
+            this.remainingResources -= amount;
             
             if (this.nodeType === 'mineral') {
                 this.gameStore.addMinerals(amount);
@@ -99,9 +125,21 @@ export class ResourceNode extends Entity {
                 this.gameStore.addGas(amount);
             }
 
+            // Update amount label
+            this.amountText.text = Math.floor(this.remainingResources).toString();
+
+            // Visual feedback: shrink slightly as resources deplete
+            const scale = 0.4 + (this.remainingResources / this.maxResources) * 0.6;
+            this.container.scale.set(scale);
+
             // Draw a mining beam/spark occasionally
             if (Math.random() < 0.1) {
                 this.createSpark(dx, dy);
+            }
+
+            if (this.remainingResources <= 0) {
+                this.isDestroyed = true;
+                this.container.visible = false;
             }
         } else {
             // Default ambient glow pulse
@@ -121,6 +159,10 @@ export class ResourceNode extends Entity {
 
         let age = 0;
         const ticker = (t: PIXI.Ticker) => {
+            if (this.isDestroyed || spark.destroyed) {
+                PIXI.Ticker.shared.remove(ticker);
+                return;
+            }
             age += t.deltaTime * 0.08;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > 0) {

@@ -173,6 +173,10 @@ body::after {
   gap: 8px;
 }
 
+.panel-res {
+  display: flex;
+}
+
 .panel-kicker {
   font-size: 0.7rem;
   letter-spacing: 0.28em;
@@ -263,19 +267,27 @@ body::after {
 }
 
 .pill--mineral {
-  border-color: rgba(0, 242, 255, 0.4);
+  display: flex;
+  gap: 0.3rem;
   color: #00f2ff;
   font-weight: bold;
-  background: rgba(0, 242, 255, 0.08);
+  align-items: center;
+  justify-content: center;
 }
 
 .pill--gas {
-  border-color: rgba(91, 251, 136, 0.4);
+  display: flex;
+  gap: 0.3rem;
   color: #5bfb88;
   font-weight: bold;
-  background: rgba(91, 251, 136, 0.08);
+  align-items: center;
+  justify-content: center;
 }
 
+.pill--mineral img,
+.pill--gas img {
+width: 1.5rem;
+}
 
 .hud-core {
   padding: 10px 12px;
@@ -524,6 +536,11 @@ body::after {
 .tree-points strong {
   font-size: clamp(1.4rem, 1.3vw + 0.8rem, 2rem);
   color: rgba(255, 218, 148, 0.98);
+}
+
+.tree-res {
+  margin-right: 0.5rem;
+  width: 2rem;
 }
 
 .tree-branchbar {

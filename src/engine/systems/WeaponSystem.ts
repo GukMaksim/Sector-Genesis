@@ -298,11 +298,17 @@ export class OrbitalLaser extends BaseWeapon {
 
         let life = 1.0;
         const ticker = (tickerObj: PIXI.Ticker) => {
+            if (laser.destroyed) {
+                PIXI.Ticker.shared.remove(ticker);
+                return;
+            }
             life -= tickerObj.deltaTime * 0.05;
             laser.alpha = life;
             laser.scale.x = life;
             if (life <= 0) {
-                stage.removeChild(laser);
+                if (stage && !stage.destroyed) {
+                    stage.removeChild(laser);
+                }
                 laser.destroy();
                 PIXI.Ticker.shared.remove(ticker);
             }

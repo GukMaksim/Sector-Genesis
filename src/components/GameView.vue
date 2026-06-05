@@ -11,8 +11,8 @@
           <div class="stage-meta stage-meta--compact">
             <span class="pill pill--blue">LV {{ gameStore.level }}</span>
             <span class="pill">{{ formattedTime }}</span>
-            <span class="pill pill--mineral">💎 {{ Math.floor(gameStore.minerals) }}</span>
-            <span class="pill pill--gas">🟢 {{ Math.floor(gameStore.gas) }}</span>
+            <span class="pill--mineral"><img src="../../ui/mineral.jpg"> {{ Math.floor(gameStore.minerals) }}</span>
+            <span class="pill--gas"><img src="../../ui/gas.jpg"> {{ Math.floor(gameStore.gas) }}</span>
           </div>
         </section>
 
@@ -36,6 +36,7 @@
           <span class="mini-stat__value">{{ gameStore.kills }}</span>
         </section>
       </header>
+      <Minimap />
     </div>
 
     <div v-if="gameStore.showUpgradeOverlay" class="overlay overlay--upgrade">
@@ -50,12 +51,12 @@
 
         <div class="tree-topline">
           <div class="tree-points panel panel--compact" style="display: flex; gap: 16px; align-items: center;">
-            <div>
-              <span class="panel-kicker" style="color: #00f2ff;">MINERALS</span>
+            <div class="panel-res">
+              <span class="panel-kicker" style="color: #00f2ff;"><img class="tree-res" src="../../ui/mineral.jpg"></span>
               <strong style="color: #00f2ff; font-size: 1.4rem;">{{ Math.floor(gameStore.minerals) }}</strong>
             </div>
-            <div>
-              <span class="panel-kicker" style="color: #5bfb88;">VESPENE GAS</span>
+            <div class="panel-res">
+              <span class="panel-kicker" style="color: #5bfb88;"><img class="tree-res" src="../../ui/gas.jpg"></span>
               <strong style="color: #5bfb88; font-size: 1.4rem;">{{ Math.floor(gameStore.gas) }}</strong>
             </div>
           </div>
@@ -191,6 +192,7 @@ import { GameEngine } from '../engine/GameEngine';
 import { useGameStore } from '../stores/gameStore';
 import MobileJoystick from './MobileJoystick.vue';
 import WeaponHotbar from './WeaponHotbar.vue';
+import Minimap from './Minimap.vue';
 
 const loading = ref(true);
 const gameStore = useGameStore();

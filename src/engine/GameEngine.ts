@@ -8,6 +8,7 @@ import { BackgroundSystem } from './systems/BackgroundSystem';
 import { InputManager } from './managers/InputManager';
 import { WeaponSystem } from './systems/WeaponSystem';
 import { SpawnerSystem } from './systems/SpawnerSystem';
+import { IndicatorSystem } from './systems/IndicatorSystem';
 import { useGameStore } from '../stores/gameStore';
 
 export class GameEngine {
@@ -17,12 +18,20 @@ export class GameEngine {
     public player?: Player;
     public background?: BackgroundSystem;
     public spawner?: SpawnerSystem;
+    public indicatorSystem?: IndicatorSystem;
     public weaponSystem: WeaponSystem;
+    
+    // Containers for layered rendering
+    private nodesContainer: PIXI.Container;
+    private gemsContainer: PIXI.Container;
+    private enemiesContainer: PIXI.Container;
+    private projectilesContainer: PIXI.Container;
     
     public enemies: Enemy[] = [];
     public projectiles: Projectile[] = [];
     public xpGems: XpGem[] = [];
     public resourceNodes: ResourceNode[] = [];
+    private respawnQueue: { type: 'mineral' | 'gas', time: number }[] = [];
     
     private input: InputManager;
     private gameStore = useGameStore();
@@ -31,6 +40,12 @@ export class GameEngine {
         this.app = new PIXI.Application();
         this.input = InputManager.getInstance();
         this.weaponSystem = new WeaponSystem();
+        
+        this.nodesContainer = new PIXI.Container();
+        this.gemsContainer = new PIXI.Container();
+        this.enemiesContainer = new PIXI.Container();
+        this.projectilesContainer = new PIXI.Container();
+        
         (window as any).gameEngine = this;
     }
 
@@ -53,7 +68,14 @@ export class GameEngine {
 
         // Initialize systems
         this.background = new BackgroundSystem(this.app.stage);
-        this.spawner = new SpawnerSystem(this.app.stage);
+        
+        // Setup containers
+        this.app.stage.addChild(this.nodesContainer);
+        this.app.stage.addChild(this.gemsContainer);
+        this.app.stage.addChild(this.enemiesContainer);
+        this.app.stage.addChild(this.projectilesContainer);
+
+        this.spawner = new SpawnerSystem(this.enemiesContainer);
 
         // Preload assets
         await PIXI.Assets.load([
@@ -69,6 +91,9 @@ export class GameEngine {
         // Initialize entities
         this.player = new Player();
         this.app.stage.addChild(this.player.container);
+
+        // Initialize indicator system for resource nodes
+        this.indicatorSystem = new IndicatorSystem(this.app.stage, this.player.container);
 
         // Spawn initial resource nodes
         this.spawnInitialResourceNodes();
@@ -93,7 +118,7 @@ export class GameEngine {
             // Safety check
             if (e.isDestroyed) continue;
 
-            // Check visibility
+            // Check visibility (Screen bounds)
             if (e.container.x < -margin || 
                 e.container.x > window.innerWidth + margin || 
                 e.container.y < -margin || 
@@ -115,7 +140,10 @@ export class GameEngine {
         const playerVelY = move.y * this.player.speed * delta;
         
         if (this.background) {
-            this.background.update({ x: playerVelX, y: playerVelY });
+            this.background.update(
+                { x: playerVelX, y: playerVelY }, 
+                this.gameStore.stats.discoveryRadius
+            );
         }
 
         // 3. Spawning
@@ -127,7 +155,7 @@ export class GameEngine {
             this.player.container.x, 
             this.player.container.y, 
             this.enemies, 
-            this.app.stage,
+            this.projectilesContainer,
             (enemy: Enemy) => this.handleEnemyKilled(enemy)
         );
         this.projectiles.push(...newProjectiles);
@@ -161,14 +189,32 @@ export class GameEngine {
             }
             gem.container.x -= playerVelX;
             gem.container.y -= playerVelY;
+
+            // Set visibility based on discovery
+            if (this.background) {
+                gem.container.visible = this.background.isAreaDiscovered(gem.container.x, gem.container.y);
+            }
+            
             return true;
         });
 
         // 6b. Update Resource Nodes
         this.resourceNodes = this.resourceNodes.filter(node => {
+            if (node.isDestroyed) {
+                // Add to respawn queue
+                this.respawnQueue.push({ type: node.nodeType, time: Date.now() + 60000 });
+                node.destroy();
+                return false;
+            }
+
             node.container.x -= playerVelX;
             node.container.y -= playerVelY;
             node.updateWithPlayer(delta, this.player!.container, this.app.ticker.deltaMS);
+
+            // Set visibility based on discovery
+            if (this.background) {
+                node.container.visible = this.background.isAreaDiscovered(node.container.x, node.container.y);
+            }
 
             const dx = node.container.x - this.player!.container.x;
             const dy = node.container.y - this.player!.container.y;
@@ -176,7 +222,29 @@ export class GameEngine {
             
             // Cull if extremely far away (e.g. > 3000px)
             if (dist > 3000) {
+                // Also add to respawn queue if culled to keep total count stable
+                this.respawnQueue.push({ type: node.nodeType, time: Date.now() + 60000 });
                 node.destroy();
+                return false;
+            }
+            return true;
+        });
+
+        // 6c. Handle Respawns
+        const now = Date.now();
+        this.respawnQueue = this.respawnQueue.filter(item => {
+            if (now >= item.time) {
+                // Respawn in a random direction around player
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
+                const cx = this.player!.container.x + Math.cos(angle) * radius;
+                const cy = this.player!.container.y + Math.sin(angle) * radius;
+
+                if (item.type === 'mineral') {
+                    this.spawnMineralCluster(cx, cy);
+                } else {
+                    this.spawnGasCluster(cx, cy);
+                }
                 return false;
             }
             return true;
@@ -190,20 +258,34 @@ export class GameEngine {
                 const baseAngle = Math.atan2(move.y, move.x);
                 spawnAngle = baseAngle + (Math.random() - 0.5) * Math.PI * 0.5;
             }
-            const radius = Math.max(window.innerWidth, window.innerHeight) * 0.9;
+            const radius = Math.max(window.innerWidth, window.innerHeight) * 1.2;
             const cx = this.player!.container.x + Math.cos(spawnAngle) * radius;
             const cy = this.player!.container.y + Math.sin(spawnAngle) * radius;
-            this.spawnResourceCluster(cx, cy);
+            
+            // Randomly decide between mineral or gas cluster
+            if (Math.random() < 0.7) {
+                this.spawnMineralCluster(cx, cy);
+            } else {
+                this.spawnGasCluster(cx, cy);
+            }
         }
 
         // 7. Update Enemies & Collision
         this.enemies = this.enemies.filter(enemy => {
-            if (enemy.isDestroyed) return false;
+            if (enemy.isDestroyed) {
+                enemy.destroy();
+                return false;
+            }
             
             enemy.container.x -= playerVelX;
             enemy.container.y -= playerVelY;
             
             enemy.updateWithPlayer(delta, this.player!.container);
+
+            // Set visibility based on discovery
+            if (this.background) {
+                enemy.container.visible = this.background.isAreaDiscovered(enemy.container.x, enemy.container.y);
+            }
 
                     // Collision with projectiles
             for (const p of this.projectiles) {
@@ -268,6 +350,11 @@ export class GameEngine {
 
             return true;
         });
+
+        // 8. Update Indicators (Arrows)
+        if (this.indicatorSystem) {
+            this.indicatorSystem.update(this.resourceNodes);
+        }
     }
 
     public get stage() {
@@ -294,12 +381,12 @@ export class GameEngine {
                 const gemY = y + Math.sin(angle) * dist;
                 const gem = new XpGem(gemX, gemY, Math.floor(xp / 50));
                 this.xpGems.push(gem);
-                this.app.stage.addChild(gem.container);
+                this.gemsContainer.addChild(gem.container);
             }
         } else {
             const gem = new XpGem(x, y, xp);
             this.xpGems.push(gem);
-            this.app.stage.addChild(gem.container);
+            this.gemsContainer.addChild(gem.container);
         }
         
         this.gameStore.kills++;
@@ -313,36 +400,45 @@ export class GameEngine {
     private spawnInitialResourceNodes() {
         const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         
-        // Spawn 4 clusters at different angles around center
-        const numClusters = 4;
-        for (let i = 0; i < numClusters; i++) {
-            const angle = (i / numClusters) * Math.PI * 2 + Math.random() * 0.5;
-            const distance = 400 + Math.random() * 400;
+        // Spawn separate clusters at different angles around center
+        // Minerals
+        for (let i = 0; i < 3; i++) {
+            const angle = (i / 3) * Math.PI * 2 + Math.random();
+            const distance = 800 + Math.random() * 400;
             const cx = center.x + Math.cos(angle) * distance;
             const cy = center.y + Math.sin(angle) * distance;
-            this.spawnResourceCluster(cx, cy);
+            this.spawnMineralCluster(cx, cy);
+        }
+
+        // Gas
+        for (let i = 0; i < 2; i++) {
+            const angle = (i / 2) * Math.PI * 2 + Math.PI / 2 + Math.random();
+            const distance = 1000 + Math.random() * 500;
+            const cx = center.x + Math.cos(angle) * distance;
+            const cy = center.y + Math.sin(angle) * distance;
+            this.spawnGasCluster(cx, cy);
         }
     }
 
-    public spawnResourceCluster(clusterX: number, clusterY: number) {
-        // Spawn 3-5 mineral nodes in a cluster
-        const numMinerals = 3 + Math.floor(Math.random() * 3);
+    public spawnMineralCluster(clusterX: number, clusterY: number) {
+        const numMinerals = 4 + Math.floor(Math.random() * 3);
         for (let j = 0; j < numMinerals; j++) {
-            const offsetX = (Math.random() - 0.5) * 80;
-            const offsetY = (Math.random() - 0.5) * 80;
+            const offsetX = (Math.random() - 0.5) * 100;
+            const offsetY = (Math.random() - 0.5) * 100;
             const node = new ResourceNode(clusterX + offsetX, clusterY + offsetY, 'mineral');
             this.resourceNodes.push(node);
-            this.app.stage.addChild(node.container);
+            this.nodesContainer.addChild(node.container);
         }
-        
-        // Spawn 1-2 gas nodes in the cluster
+    }
+
+    public spawnGasCluster(clusterX: number, clusterY: number) {
         const numGas = 1 + Math.floor(Math.random() * 2);
         for (let j = 0; j < numGas; j++) {
-            const offsetX = (Math.random() - 0.5) * 120;
-            const offsetY = (Math.random() - 0.5) * 120;
+            const offsetX = (Math.random() - 0.5) * 150;
+            const offsetY = (Math.random() - 0.5) * 150;
             const node = new ResourceNode(clusterX + offsetX, clusterY + offsetY, 'gas');
             this.resourceNodes.push(node);
-            this.app.stage.addChild(node.container);
+            this.nodesContainer.addChild(node.container);
         }
     }
 }

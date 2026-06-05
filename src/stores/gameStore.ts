@@ -24,6 +24,8 @@ export interface GameStats {
     maxHealthBonus: number;
     projectileSizeMult: number;
     projectileSpeedMult: number;
+    visionRadius: number;
+    discoveryRadius: number;
 }
 
 const DEFAULT_STATS: GameStats = {
@@ -39,6 +41,8 @@ const DEFAULT_STATS: GameStats = {
     maxHealthBonus: 0,
     projectileSizeMult: 0,
     projectileSpeedMult: 0,
+    visionRadius: 400,
+    discoveryRadius: 450,
 };
 
 const flattenSkillTree = () => SKILL_TREE_CONFIG.flatMap((branch) => branch.nodes);

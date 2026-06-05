@@ -1,13 +1,14 @@
 import * as PIXI from 'pixi.js';
 
 export class BackgroundSystem {
-    private container: PIXI.Container;
+    public container: PIXI.Container;
     private terrainLayer: PIXI.Container;
     private objectLayer: PIXI.Container;
     
     private gridSize = 256;
-    private tiles: Map<string, PIXI.Container> = new Map();
-    
+    public tiles: Map<string, { container: PIXI.Container, fog: PIXI.Graphics, discovered: boolean }> = new Map();
+    private discoveredTiles: Set<string> = new Set();
+
     constructor(stage: PIXI.Container) {
         this.container = new PIXI.Container();
         stage.addChildAt(this.container, 0);
@@ -90,11 +91,17 @@ export class BackgroundSystem {
             tileContainer.addChild(debris);
         }
 
+        // 3. Fog Layer
+        const fog = new PIXI.Graphics();
+        fog.rect(0, 0, this.gridSize, this.gridSize);
+        fog.fill(0x000000);
+        tileContainer.addChild(fog);
+
         this.terrainLayer.addChild(tileContainer);
-        this.tiles.set(key, tileContainer);
+        this.tiles.set(key, { container: tileContainer, fog, discovered: false });
     }
 
-    public update(playerVelocity: { x: number, y: number }) {
+    public update(playerVelocity: { x: number, y: number }, discoveryRadius: number) {
         // Move the whole container (Parallax 1:1 for ground)
         this.container.x -= playerVelocity.x;
         this.container.y -= playerVelocity.y;
@@ -113,16 +120,44 @@ export class BackgroundSystem {
             }
         }
 
+        // Update Fog and Discovery
+        for (const [key, tileData] of this.tiles.entries()) {
+            const tile = tileData.container;
+            const dx = (tile.x + this.gridSize / 2) - centerX;
+            const dy = (tile.y + this.gridSize / 2) - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < discoveryRadius) {
+                tileData.discovered = true;
+                this.discoveredTiles.add(key);
+            }
+
+            if (tileData.discovered || this.discoveredTiles.has(key)) {
+                tileData.discovered = true;
+                tileData.fog.alpha = 0;
+            } else {
+                tileData.fog.alpha = 1.0; // Unexplored (black)
+            }
+        }
+
         // Optional: Cull far tiles for performance
         if (this.tiles.size > 100) {
-            for (const [key, tile] of this.tiles.entries()) {
+            for (const [key, tileData] of this.tiles.entries()) {
                 const [tx, ty] = key.split(',').map(Number);
                 if (Math.abs(tx - currentTileX) > 5 || Math.abs(ty - currentTileY) > 5) {
-                    this.terrainLayer.removeChild(tile);
-                    tile.destroy({ children: true });
+                    this.terrainLayer.removeChild(tileData.container);
+                    tileData.container.destroy({ children: true });
                     this.tiles.delete(key);
                 }
             }
         }
+    }
+
+    public isAreaDiscovered(screenX: number, screenY: number): boolean {
+        const worldX = screenX - this.container.x;
+        const worldY = screenY - this.container.y;
+        const tx = Math.floor(worldX / this.gridSize);
+        const ty = Math.floor(worldY / this.gridSize);
+        return this.discoveredTiles.has(`${tx},${ty}`);
     }
 }
