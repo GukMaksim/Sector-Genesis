@@ -2,12 +2,15 @@ import * as PIXI from 'pixi.js';
 import { Enemy } from '../../entities/Enemy';
 import { Projectile } from '../../entities/Projectile';
 import { useGameStore } from '../../stores/gameStore';
+import { useUpgradeStore } from '../../stores/upgradeStore';
 import type { WeaponId } from '../../types/game';
+
+export type EnemyKilledCallback = (enemy: Enemy, x?: number, y?: number) => void;
 
 export interface WeaponInstance {
     id: WeaponId;
     level: number;
-    update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[];
+    update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[];
 }
 
 type Direction = { x: number; y: number };
@@ -22,43 +25,41 @@ abstract class BaseWeapon implements WeaponInstance {
     public level = 1;
     protected lastFireTime = 0;
     protected gameStore = useGameStore();
+    protected upgradeStore = useUpgradeStore();
 
-    public abstract update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[];
+    public abstract update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[];
 
     protected getDamage(baseDamage: number) {
-        const crit = Math.random() < this.gameStore.stats.criticalChance;
-        return baseDamage * this.gameStore.stats.damageMult * (crit ? 1.6 : 1);
+        const stats = this.upgradeStore.statMultipliers;
+        const crit = Math.random() < stats.criticalChance;
+        return baseDamage * stats.damageMult * (crit ? 1.6 : 1);
     }
 
     protected getProjectileScale() {
-        return 1 + this.gameStore.stats.projectileSizeMult;
+        return 1 + this.upgradeStore.statMultipliers.projectileSizeMult;
     }
 
     protected getProjectileSpeed(baseSpeed: number) {
-        return baseSpeed * (1 + this.gameStore.stats.projectileSpeedMult);
+        return baseSpeed * (1 + this.upgradeStore.statMultipliers.projectileSpeedMult);
     }
 
     protected getProjectileCount() {
-        return 1 + this.gameStore.stats.projectileCountBonus;
+        return 1 + this.upgradeStore.statMultipliers.projectileCountBonus;
     }
 
     protected getNearestEnemy(x: number, y: number, enemies: Enemy[]) {
         let nearest: Enemy | null = null;
         let minDist = Infinity;
-        const margin = 50; // Small margin to allow shooting slightly off-screen enemies if needed, or stick strictly to viewport
-        
-        for (const enemy of enemies) {
-            // Safety check for destroyed enemies
-            if (enemy.isDestroyed) continue;
+        const margin = 50;
 
-            // Check visibility
-            if (enemy.container.x < -margin || 
-                enemy.container.x > window.innerWidth + margin || 
-                enemy.container.y < -margin || 
+        for (const enemy of enemies) {
+            if (enemy.isDestroyed) continue;
+            if (enemy.container.x < -margin ||
+                enemy.container.x > window.innerWidth + margin ||
+                enemy.container.y < -margin ||
                 enemy.container.y > window.innerHeight + margin) {
                 continue;
             }
-
             const dx = enemy.container.x - x;
             const dy = enemy.container.y - y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -69,30 +70,36 @@ abstract class BaseWeapon implements WeaponInstance {
         }
         return nearest;
     }
+
+    protected getRicochetOptions(): { maxBounces: number; damageFalloff: number; searchRadius: number; bouncesLeft: number } | undefined {
+        const behavior = this.upgradeStore.activeBehaviors.find((b: any) => b.behaviorId === 'ricochet');
+        if (!behavior) return undefined;
+        return {
+            maxBounces: behavior.params.maxBounces,
+            damageFalloff: behavior.params.damageFalloff,
+            searchRadius: behavior.params.searchRadius,
+            bouncesLeft: behavior.params.maxBounces,
+        };
+    }
 }
 
 export class GaussRifle extends BaseWeapon {
     public id: WeaponId = 'gauss_rifle';
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
-        const cooldown = 500 / (this.gameStore.stats.fireRateMult * (this.level * 0.22 + 0.85));
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 500 / (stats.fireRateMult * (this.level * 0.22 + 0.85));
         const now = Date.now();
-
-        if (now - this.lastFireTime <= cooldown) {
-            return [];
-        }
-
+        if (now - this.lastFireTime <= cooldown) return [];
         const target = this.getNearestEnemy(x, y, enemies);
-        if (!target) {
-            return [];
-        }
-
+        if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
         const count = this.getProjectileCount();
         const spreadStep = 0.08;
         const centerOffset = (count - 1) / 2;
         const projectiles: Projectile[] = [];
+        const ricochet = this.getRicochetOptions();
 
         for (let index = 0; index < count; index++) {
             const spread = (index - centerOffset) * spreadStep;
@@ -104,11 +111,11 @@ export class GaussRifle extends BaseWeapon {
                 size: this.getProjectileScale(),
                 color: 0xffcf4d,
                 lifeTime: 1800,
+                ricochet,
             });
             stage.addChild(projectile.container);
             projectiles.push(projectile);
         }
-
         return projectiles;
     }
 
@@ -124,22 +131,17 @@ export class Minigun extends BaseWeapon {
     public id: WeaponId = 'minigun';
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
-        const cooldown = 70 / this.gameStore.stats.fireRateMult;
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 70 / stats.fireRateMult;
         const now = Date.now();
-
-        if (now - this.lastFireTime <= cooldown) {
-            return [];
-        }
-
+        if (now - this.lastFireTime <= cooldown) return [];
         const target = this.getNearestEnemy(x, y, enemies);
-        if (!target) {
-            return [];
-        }
-
+        if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
         const burstCount = Math.min(3, this.level);
         const projectiles: Projectile[] = [];
+        const ricochet = this.getRicochetOptions();
 
         for (let index = 0; index < burstCount; index++) {
             const spread = (Math.random() - 0.5) * 0.1;
@@ -150,11 +152,11 @@ export class Minigun extends BaseWeapon {
                 size: this.getProjectileScale() * 0.8,
                 color: 0x9dd7ff,
                 lifeTime: 1200,
+                ricochet,
             });
             stage.addChild(projectile.container);
             projectiles.push(projectile);
         }
-
         return projectiles;
     }
 
@@ -170,18 +172,12 @@ export class RocketLauncher extends BaseWeapon {
     public id: WeaponId = 'rocket_launcher';
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
-        const cooldown = 1200 / this.gameStore.stats.fireRateMult;
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 1200 / stats.fireRateMult;
         const now = Date.now();
-
-        if (now - this.lastFireTime <= cooldown) {
-            return [];
-        }
-
+        if (now - this.lastFireTime <= cooldown) return [];
         const target = this.getNearestEnemy(x, y, enemies);
-        if (!target) {
-            return [];
-        }
-
+        if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
         const projectile = new Projectile(x, y, direction, {
@@ -208,18 +204,12 @@ export class PlasmaCannon extends BaseWeapon {
     public id: WeaponId = 'plasma_cannon';
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
-        const cooldown = 1600 / this.gameStore.stats.fireRateMult;
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 1600 / stats.fireRateMult;
         const now = Date.now();
-
-        if (now - this.lastFireTime <= cooldown) {
-            return [];
-        }
-
+        if (now - this.lastFireTime <= cooldown) return [];
         const target = this.getNearestEnemy(x, y, enemies);
-        if (!target) {
-            return [];
-        }
-
+        if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
         const projectile = new Projectile(x, y, direction, {
@@ -245,33 +235,25 @@ export class PlasmaCannon extends BaseWeapon {
 export class OrbitalLaser extends BaseWeapon {
     public id: WeaponId = 'orbital_laser';
 
-    public update(_x: number, _y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[] {
+    public update(_x: number, _y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[] {
         const cooldown = 3000 / (1 + this.level * 0.2);
         const now = Date.now();
-
-        if (now - this.lastFireTime <= cooldown) {
-            return [];
-        }
-
+        if (now - this.lastFireTime <= cooldown) return [];
         this.lastFireTime = now;
-        const visibleEnemies = enemies.filter(enemy => 
+        const visibleEnemies = enemies.filter(enemy =>
             !enemy.isDestroyed &&
-            enemy.container.x >= -50 && 
-            enemy.container.x <= window.innerWidth + 50 && 
-            enemy.container.y >= -50 && 
+            enemy.container.x >= -50 &&
+            enemy.container.x <= window.innerWidth + 50 &&
+            enemy.container.y >= -50 &&
             enemy.container.y <= window.innerHeight + 50
         );
-        
         const target = visibleEnemies[Math.floor(Math.random() * visibleEnemies.length)];
-        if (!target) {
-            return [];
-        }
-
+        if (!target) return [];
         this.strike(target.container.x, target.container.y, stage, enemies, onEnemyKilled);
         return [];
     }
 
-    private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: (enemy: Enemy) => void) {
+    private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: EnemyKilledCallback) {
         const laser = new PIXI.Graphics();
         laser.rect(-4, -1000, 8, 1000);
         laser.fill(0x00f2ff);
@@ -283,15 +265,15 @@ export class OrbitalLaser extends BaseWeapon {
         const radius = 80 + this.level * 15;
         for (const enemy of enemies) {
             if (enemy.isDestroyed) continue;
-
             const dx = enemy.container.x - tx;
             const dy = enemy.container.y - ty;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < radius) {
+                const ex = enemy.container.x;
+                const ey = enemy.container.y;
                 enemy.takeDamage(100 * (1 + this.level * 0.5));
-
                 if (enemy.isDestroyed && onEnemyKilled) {
-                    onEnemyKilled(enemy);
+                    onEnemyKilled(enemy, ex, ey);
                 }
             }
         }
@@ -313,7 +295,6 @@ export class OrbitalLaser extends BaseWeapon {
                 PIXI.Ticker.shared.remove(ticker);
             }
         };
-
         PIXI.Ticker.shared.add(ticker);
     }
 }
@@ -325,7 +306,7 @@ export class WeaponSystem {
         this.equipped.push(new GaussRifle());
     }
 
-    public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: (enemy: Enemy) => void): Projectile[] {
+    public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[] {
         const allProjectiles: Projectile[] = [];
         const activeId = useGameStore().activeWeaponId;
         const activeWeapon = this.equipped.find((weapon) => weapon.id === activeId);
@@ -333,14 +314,11 @@ export class WeaponSystem {
             const newProjectiles = activeWeapon.update(x, y, enemies, stage, onEnemyKilled);
             allProjectiles.push(...newProjectiles);
         }
-        
-        // Orbital laser is a support weapon that fires automatically in the background when unlocked
         const orbitalLaser = this.equipped.find((weapon) => weapon.id === 'orbital_laser');
         if (orbitalLaser) {
             const newProjectiles = orbitalLaser.update(x, y, enemies, stage, onEnemyKilled);
             allProjectiles.push(...newProjectiles);
         }
-        
         return allProjectiles;
     }
 
@@ -350,7 +328,6 @@ export class WeaponSystem {
             existing.level++;
             return;
         }
-
         switch (id) {
             case 'gauss_rifle':
                 this.equipped.push(new GaussRifle());

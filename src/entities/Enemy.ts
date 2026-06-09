@@ -7,6 +7,8 @@ export abstract class Enemy extends Entity {
     public abstract damage: number;
     public abstract xpValue: number;
     public isBoss: boolean = false;
+    public lastX: number;
+    public lastY: number;
 
     protected animationTime: number = Math.random() * 100;
 
@@ -14,6 +16,8 @@ export abstract class Enemy extends Entity {
         super();
         this.container.x = x;
         this.container.y = y;
+        this.lastX = x;
+        this.lastY = y;
     }
 
     public update() {}
@@ -128,6 +132,8 @@ export class Zergling extends Enemy {
             
             this.container.x += moveX;
             this.container.y += moveY;
+            this.lastX = this.container.x;
+            this.lastY = this.container.y;
             
             // Determine direction
             let newDir = this.currentDirection;
@@ -247,7 +253,6 @@ export class Mutalisk extends Enemy {
 
         if (dist > 1) {
             const angle = Math.atan2(dy, dx);
-            // Keep the side-step movement but use directions for visual
             const sideStep = Math.sin(this.animationTime * 2) * 2.5;
 
             const moveX = (Math.cos(angle) * this.speed + Math.cos(angle + Math.PI / 2) * sideStep) * delta;
@@ -255,6 +260,8 @@ export class Mutalisk extends Enemy {
 
             this.container.x += moveX;
             this.container.y += moveY;
+            this.lastX = this.container.x;
+            this.lastY = this.container.y;
 
             // Determine direction based on actual movement or target
             let newDir = this.currentDirection;

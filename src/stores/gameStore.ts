@@ -1,13 +1,8 @@
 import { defineStore } from 'pinia';
 import { HUMAN_CONFIG } from '../config/human.config';
-import { SKILL_TREE_CONFIG } from '../config/skillTree.config';
 import type {
     EvolutionStage,
     RaceType,
-    SkillEffect,
-    SkillTreeBranchState,
-    SkillTreeNodeConfig,
-    StatKey,
     WeaponId,
 } from '../types/game';
 
@@ -45,19 +40,6 @@ const DEFAULT_STATS: GameStats = {
     discoveryRadius: 450,
 };
 
-const flattenSkillTree = () => SKILL_TREE_CONFIG.flatMap((branch) => branch.nodes);
-
-const isNodeUnlockable = (
-    unlockedSkillNodes: Record<string, number>,
-    minerals: number,
-    gas: number,
-    node: SkillTreeNodeConfig,
-) => {
-    const rank = unlockedSkillNodes[node.id] ?? 0;
-    const prerequisitesMet = node.prerequisites?.every((prerequisite) => (unlockedSkillNodes[prerequisite] ?? 0) > 0) ?? true;
-    return minerals >= node.mineralCost && gas >= node.gasCost && rank < node.maxRank && prerequisitesMet;
-};
-
 export const useGameStore = defineStore('game', {
     state: () => ({
         level: 1,
@@ -68,16 +50,15 @@ export const useGameStore = defineStore('game', {
         kills: 0,
         time: 0,
         credits: 0,
-        skillPoints: 0,
         minerals: 0,
         gas: 0,
         activeWeaponId: 'gauss_rifle' as WeaponId,
         isGameOver: false,
         isPaused: false,
         showUpgradeOverlay: false,
-        unlockedSkillNodes: {} as Record<string, number>,
+        showSpecializationChoice: false,
         unlockedWeapons: ['gauss_rifle'] as WeaponId[],
-        stats: { ...DEFAULT_STATS },
+        baseStats: { ...DEFAULT_STATS },
     }),
     getters: {
         currentStage(): EvolutionStage {
@@ -86,50 +67,10 @@ export const useGameStore = defineStore('game', {
         xpPercentage(): number {
             return (this.xp / this.nextLevelXp) * 100;
         },
-        skillTreeBranches(): SkillTreeBranchState[] {
-            return SKILL_TREE_CONFIG.map((branch) => ({
-                ...branch,
-                nodes: branch.nodes.map((node) => {
-                    const rank = this.unlockedSkillNodes[node.id] ?? 0;
-                    const prerequisitesMet = node.prerequisites?.every((prerequisite) => (this.unlockedSkillNodes[prerequisite] ?? 0) > 0) ?? true;
-                    const locked = !prerequisitesMet;
-                    const available = prerequisitesMet && rank < node.maxRank && this.minerals >= node.mineralCost && this.gas >= node.gasCost;
-
-                    return {
-                        ...node,
-                        rank,
-                        unlocked: rank > 0,
-                        available,
-                        locked,
-                    };
-                }),
-            }));
-        },
-        equippedWeaponNames(): string[] {
-            return this.unlockedWeapons.map((weaponId) => {
-                switch (weaponId) {
-                    case 'gauss_rifle':
-                        return 'Gauss Rifle';
-                    case 'minigun':
-                        return 'Minigun';
-                    case 'rocket_launcher':
-                        return 'Rocket Launcher';
-                    case 'plasma_cannon':
-                        return 'Plasma Cannon';
-                    case 'orbital_laser':
-                        return 'Orbital Laser';
-                    default:
-                        return weaponId;
-                }
-            });
-        },
-        availableSkillNodes(): SkillTreeNodeConfig[] {
-            return flattenSkillTree().filter((node) => isNodeUnlockable(this.unlockedSkillNodes, this.minerals, this.gas, node));
-        },
     },
     actions: {
         addXp(amount: number) {
-            this.xp += amount * this.stats.xpGainMult;
+            this.xp += amount * this.baseStats.xpGainMult;
             while (this.xp >= this.nextLevelXp) {
                 this.levelUp();
                 if (this.showUpgradeOverlay) break;
@@ -144,71 +85,20 @@ export const useGameStore = defineStore('game', {
             if (nextStage && this.level >= nextStage.level) {
                 this.currentStageIndex++;
             }
+
+            this.showUpgradeOverlay = true;
+            this.isPaused = true;
         },
         closeUpgradeOverlay() {
             this.showUpgradeOverlay = false;
             this.isPaused = false;
         },
-        canUnlockNode(node: SkillTreeNodeConfig) {
-            return isNodeUnlockable(this.unlockedSkillNodes, this.minerals, this.gas, node);
-        },
-        unlockSkillNode(nodeId: string) {
-            const node = flattenSkillTree().find((candidate) => candidate.id === nodeId);
-            if (!node || !this.canUnlockNode(node)) {
-                return false;
-            }
-
-            this.minerals -= node.mineralCost;
-            this.gas -= node.gasCost;
-            this.unlockedSkillNodes[node.id] = (this.unlockedSkillNodes[node.id] ?? 0) + 1;
-
-            for (const effect of node.effects) {
-                this.applySkillEffect(effect);
-            }
-
-            return true;
-        },
-        applySkillEffect(effect: SkillEffect) {
-            switch (effect.type) {
-                case 'stat':
-                    this.applyStatEffect(effect.stat, effect.value, effect.mode ?? 'add');
-                    break;
-                case 'weapon_unlock':
-                    this.unlockWeapon(effect.weaponId);
-                    break;
-                case 'weapon_rank':
-                    this.upgradeWeapon(effect.weaponId, effect.value);
-                    break;
-                case 'health_burst':
-                    this.heal(effect.value);
-                    break;
-            }
-        },
-        applyStatEffect(stat: StatKey, value: number, mode: 'add' | 'mult') {
-            if (mode === 'mult') {
-                const current = this.stats[stat];
-                this.stats[stat] = stat === 'xpGainMult' ? current + value : current + value;
-                return;
-            }
-
-            this.stats[stat] += value;
-        },
         unlockWeapon(weaponId: WeaponId) {
             if (!this.unlockedWeapons.includes(weaponId)) {
                 this.unlockedWeapons.push(weaponId);
             }
-
             const engine = (window as any).gameEngine;
             engine?.weaponSystem.addOrUpgrade(weaponId);
-        },
-        upgradeWeapon(weaponId: WeaponId, value: number) {
-            const engine = (window as any).gameEngine;
-            for (let index = 0; index < value; index++) {
-                engine?.weaponSystem.addOrUpgrade(weaponId);
-            }
-            if (!this.unlockedWeapons.includes(weaponId)) {
-                this.unlockedWeapons.push(weaponId);
-            }
         },
         setActiveWeapon(weaponId: WeaponId) {
             if (this.unlockedWeapons.includes(weaponId) && weaponId !== 'orbital_laser') {
@@ -221,13 +111,17 @@ export const useGameStore = defineStore('game', {
         addGas(amount: number) {
             this.gas += amount;
         },
+        addCredits(amount: number) {
+            this.credits += amount;
+        },
         heal(amount: number) {
             const engine = (window as any).gameEngine;
-            if (!engine?.player) {
-                return;
-            }
-
+            if (!engine?.player) return;
             engine.player.currentHealth = Math.min(engine.player.maxHealth, engine.player.currentHealth + amount);
+        },
+        endRun() {
+            this.addCredits(Math.max(1, Math.floor(this.kills * 0.5 + this.level * 5 + this.time * 0.1)));
+            this.isGameOver = true;
         },
         resetRunState() {
             this.level = 1;
@@ -237,16 +131,15 @@ export const useGameStore = defineStore('game', {
             this.kills = 0;
             this.time = 0;
             this.credits = 0;
-            this.skillPoints = 0;
             this.minerals = 0;
             this.gas = 0;
             this.activeWeaponId = 'gauss_rifle';
             this.isGameOver = false;
             this.isPaused = false;
             this.showUpgradeOverlay = false;
-            this.unlockedSkillNodes = {};
+            this.showSpecializationChoice = false;
             this.unlockedWeapons = ['gauss_rifle'];
-            this.stats = { ...DEFAULT_STATS };
+            this.baseStats = { ...DEFAULT_STATS };
         },
     },
 });

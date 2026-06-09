@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useGameStore } from '../stores/gameStore'
+import { metaManager } from '../upgrades/meta/MetaUpgradeManager'
 import type { RaceType } from '../types/game'
+import MetaUpgradePanel from './MetaUpgradePanel.vue'
 
 const emit = defineEmits<{
   start: []
 }>()
 
+const showMeta = ref(false)
 const gameStore = useGameStore()
 
 const races: Array<{
@@ -109,7 +113,12 @@ const selectRace = (race: (typeof races)[number]) => {
       </button>
     </div>
 
+    <MetaUpgradePanel :show="showMeta" @close="showMeta = false" />
+
     <footer class="race-footer">
+      <button class="race-footer__meta-btn" @click="showMeta = true">
+        META-UPGRADES ({{ metaManager.getCredits() }} CR)
+      </button>
       <span class="race-footer__version">v0.1.0 — EARLY ACCESS</span>
     </footer>
   </div>
@@ -407,6 +416,31 @@ const selectRace = (race: (typeof races)[number]) => {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: rgba(185, 201, 224, 0.35);
+}
+
+.race-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-footer__meta-btn {
+  background: none;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.race-footer__meta-btn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #ffd700;
 }
 
 @media (max-width: 760px) {

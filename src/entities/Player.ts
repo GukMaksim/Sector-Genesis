@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { Entity } from './Entity';
 import { InputManager } from '../engine/managers/InputManager';
 import { useGameStore } from '../stores/gameStore';
+import { useUpgradeStore } from '../stores/upgradeStore';
 
 const Direction = {
     DOWN: 0,
@@ -20,14 +21,14 @@ export class Player extends Entity {
     private currentDirection: Direction = Direction.DOWN;
     private spriteContainer: PIXI.Container;
     private shadow: PIXI.Graphics;
-    
+
     private input: InputManager;
     private gameStore = useGameStore();
+    private upgradeStore = useUpgradeStore();
     private baseMaxHealth: number;
-    private evolutionHealthBonus = 0;
     private lastEvolvedStage = -1;
-    
-    private spriteScale: number = 0.36; // Increased from 0.18 to double the size
+
+    private spriteScale: number = 0.36;
 
     constructor() {
         super();
@@ -36,9 +37,8 @@ export class Player extends Entity {
         this.spriteContainer = new PIXI.Container();
         this.setVisual(this.spriteContainer);
 
-        // Add a simple shadow
         this.shadow = new PIXI.Graphics();
-        this.shadow.ellipse(0, 48, 40, 16); // Adjusted shadow for larger sprite
+        this.shadow.ellipse(0, 48, 40, 16);
         this.shadow.fill({ color: 0x000000, alpha: 0.3 });
         this.spriteContainer.addChild(this.shadow);
 
@@ -52,14 +52,13 @@ export class Player extends Entity {
     }
 
     private setupAnimations() {
-        // Clear existing animations if any
         this.animations.forEach(anim => anim.destroy());
         this.animations.clear();
 
         const texturePath = this.getTextureForStage(this.gameStore.currentStageIndex);
         const texture = PIXI.Assets.get(texturePath);
         if (!texture) {
-            console.error(`Marine texture not found at ${texturePath}! Ensure it is preloaded in GameEngine.`);
+            console.error(`Marine texture not found at ${texturePath}!`);
             return;
         }
 
@@ -78,12 +77,11 @@ export class Player extends Entity {
             anim.animationSpeed = 0.15;
             anim.scale.set(this.spriteScale);
             anim.visible = false;
-            
+
             this.animations.set(row as Direction, anim);
             this.spriteContainer.addChild(anim);
         }
 
-        // Set default animation
         const defaultAnim = this.animations.get(this.currentDirection);
         if (defaultAnim) defaultAnim.visible = true;
     }
@@ -101,8 +99,7 @@ export class Player extends Entity {
     private applyEvolutionVisuals() {
         if (this.gameStore.currentStageIndex === this.lastEvolvedStage) return;
         this.lastEvolvedStage = this.gameStore.currentStageIndex;
-        
-        // Update max health from new stage config
+
         this.baseMaxHealth = this.gameStore.currentStage.statModifiers.health || this.baseMaxHealth;
 
         this.setupAnimations();
@@ -110,8 +107,8 @@ export class Player extends Entity {
     }
 
     private syncMaxHealth(restoreFull = false) {
-        const bonusMultiplier = 1 + this.gameStore.stats.maxHealthBonus;
-        const desiredMaxHealth = Math.max(1, Math.round((this.baseMaxHealth + this.evolutionHealthBonus) * bonusMultiplier));
+        const bonusMultiplier = 1 + this.upgradeStore.statMultipliers.maxHealthBonus;
+        const desiredMaxHealth = Math.max(1, Math.round((this.baseMaxHealth) * bonusMultiplier));
 
         if (desiredMaxHealth !== this.maxHealth) {
             const currentRatio = this.maxHealth > 0 ? this.currentHealth / this.maxHealth : 1;
@@ -130,12 +127,12 @@ export class Player extends Entity {
     public takeDamage(amount: number) {
         this.currentHealth -= amount;
         if (this.currentHealth <= 0) {
-            this.gameStore.isGameOver = true;
+            this.gameStore.endRun();
         }
     }
 
     public get speed(): number {
-        return this.baseSpeed * this.gameStore.stats.speedMult * (this.gameStore.currentStage.statModifiers.speed || 1);
+        return this.baseSpeed * this.upgradeStore.statMultipliers.speedMult * (this.gameStore.currentStage.statModifiers.speed || 1);
     }
 
     private setDirection(newDirection: Direction) {
@@ -146,7 +143,7 @@ export class Player extends Entity {
             prevAnim.visible = false;
             prevAnim.stop();
         }
-        
+
         this.currentDirection = newDirection;
         const newAnim = this.animations.get(this.currentDirection);
         if (newAnim) {
@@ -162,7 +159,7 @@ export class Player extends Entity {
             if (!anim.playing) anim.play();
         } else {
             anim.stop();
-            anim.currentFrame = 1; // Middle frame is usually the idle pose
+            anim.currentFrame = 1;
         }
     }
 
@@ -176,19 +173,16 @@ export class Player extends Entity {
             this.applyEvolutionVisuals();
         }
 
-        // Determine direction
         let newDir = this.currentDirection;
         const isMoving = move.x !== 0 || move.y !== 0;
 
         if (isMoving) {
-            // Movement takes priority for direction
             if (Math.abs(move.x) > Math.abs(move.y)) {
                 newDir = move.x > 0 ? Direction.RIGHT : Direction.LEFT;
             } else {
                 newDir = move.y > 0 ? Direction.DOWN : Direction.UP;
             }
         } else if (targetPos) {
-            // If standing still, face the nearest enemy
             const dx = targetPos.x - this.container.x;
             const dy = targetPos.y - this.container.y;
             if (Math.abs(dx) > Math.abs(dy)) {
