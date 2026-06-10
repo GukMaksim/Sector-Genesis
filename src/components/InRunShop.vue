@@ -48,6 +48,34 @@
             </span>
           </button>
         </template>
+
+        <template v-if="upgradeStore.activeUpgrades.length > 0">
+          <div class="shop-section-label">TEMPORARY BOOSTS</div>
+
+          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < dmgBoostCost" @click="$emit('dmgBoost')">
+            <span class="shop-item__icon">⚔️</span>
+            <span class="shop-item__name">Damage Boost (+15% for 30s)</span>
+            <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ dmgBoostCost }}</span>
+          </button>
+
+          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < fireRateCost" @click="$emit('fireRateBoost')">
+            <span class="shop-item__icon">⚡</span>
+            <span class="shop-item__name">Fire Rate Overdrive (+25% for 30s)</span>
+            <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ fireRateCost }}</span>
+          </button>
+
+          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < armorBoostCost" @click="$emit('armorBoost')">
+            <span class="shop-item__icon">🛡️</span>
+            <span class="shop-item__name">Reinforced Armor (+5 for 30s)</span>
+            <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ armorBoostCost }}</span>
+          </button>
+        </template>
+
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < fullHealCost" @click="$emit('fullHeal')">
+          <span class="shop-item__icon">💊</span>
+          <span class="shop-item__name">Full Medical Kit (Full Heal)</span>
+          <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ fullHealCost }}</span>
+        </button>
       </div>
 
       <div class="tree-footer">
@@ -62,6 +90,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
+import { useUpgradeStore } from '../stores/upgradeStore'
 import type { WeaponId } from '../types/game'
 
 defineEmits<{
@@ -70,6 +99,10 @@ defineEmits<{
   extraChoice: []
   heal: []
   unlockWeapon: [id: WeaponId]
+  dmgBoost: []
+  fireRateBoost: []
+  armorBoost: []
+  fullHeal: []
 }>()
 
 defineProps<{
@@ -77,11 +110,16 @@ defineProps<{
 }>()
 
 const gameStore = useGameStore()
+const upgradeStore = useUpgradeStore()
 const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const rerollCost = 50
 const extraChoiceCost = 30
 const healCost = 75
+const dmgBoostCost = 100
+const fireRateCost = 80
+const armorBoostCost = 120
+const fullHealCost = 150
 
 const weaponRequisitions: { id: WeaponId; name: string; icon: string; mineralCost: number; gasCost: number }[] = [
   { id: 'minigun', name: 'Minigun', icon: '/characters/marine/weapons/minigun.png', mineralCost: 200, gasCost: 100 },
@@ -156,5 +194,15 @@ const lockedWeapons = computed(() =>
   gap: 8px;
   align-items: center;
   font-size: 0.8rem;
+}
+
+.shop-section-label {
+  font-size: 0.7rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 12px 4px 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 4px;
 }
 </style>

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { UpgradeInstance, UpgradeDef, ComputedStats, ActiveBehavior } from '../upgrades/types'
+import type { UpgradeInstance, ComputedStats, ActiveBehavior } from '../upgrades/types'
 import { DEFAULT_COMPUTED_STATS } from '../upgrades/types'
 
 export const useUpgradeStore = defineStore('upgrade', {
@@ -8,8 +8,6 @@ export const useUpgradeStore = defineStore('upgrade', {
     activeBehaviors: [] as ActiveBehavior[],
     specializationId: null as string | null,
     specializationNodes: [] as string[],
-    pendingChoices: [] as UpgradeDef[],
-    showUpgradeChoice: false,
     showEvolutionNotification: false,
     evolutionNotificationText: '',
     statMultipliers: { ...DEFAULT_COMPUTED_STATS } as ComputedStats,
@@ -62,11 +60,6 @@ export const useUpgradeStore = defineStore('upgrade', {
       }
     },
 
-    setPendingChoices(choices: UpgradeDef[]) {
-      this.pendingChoices = choices
-      this.showUpgradeChoice = choices.length > 0
-    },
-
     showEvolution(text: string) {
       this.evolutionNotificationText = text
       this.showEvolutionNotification = true
@@ -82,8 +75,6 @@ export const useUpgradeStore = defineStore('upgrade', {
       this.activeBehaviors = []
       this.specializationId = null
       this.specializationNodes = []
-      this.pendingChoices = []
-      this.showUpgradeChoice = false
       this.showEvolutionNotification = false
       this.evolutionNotificationText = ''
       this.statMultipliers = { ...DEFAULT_COMPUTED_STATS }

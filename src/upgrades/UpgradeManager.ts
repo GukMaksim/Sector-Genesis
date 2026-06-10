@@ -23,8 +23,9 @@ export class UpgradeManager {
   private upgradeStore = useUpgradeStore()
 
   getContext(): UpgradeContext {
+    const gameStore = useGameStore()
     return {
-      level: 0,
+      level: gameStore.level,
       activeUpgrades: this.upgradeStore.upgradeMap,
       specializationId: this.upgradeStore.specializationId,
     }

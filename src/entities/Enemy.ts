@@ -7,6 +7,7 @@ export abstract class Enemy extends Entity {
     public abstract damage: number;
     public abstract xpValue: number;
     public isBoss: boolean = false;
+    public isFlying: boolean = false;
     public lastX: number;
     public lastY: number;
 
@@ -178,6 +179,7 @@ export class Mutalisk extends Enemy {
 
     constructor(x: number, y: number) {
         super(x, y);
+        this.isFlying = true;
 
         this.spriteContainer = new PIXI.Container();
         this.setVisual(this.spriteContainer);

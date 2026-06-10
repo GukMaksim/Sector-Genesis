@@ -4,6 +4,7 @@ import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { XpGem } from '../entities/XpGem';
 import { ResourceNode } from '../entities/ResourceNode';
+import { Obstacle, type ObstacleType } from '../entities/Obstacle';
 import { BackgroundSystem } from './systems/BackgroundSystem';
 import { InputManager } from './managers/InputManager';
 import { WeaponSystem } from './systems/WeaponSystem';
@@ -11,6 +12,7 @@ import { SpawnerSystem } from './systems/SpawnerSystem';
 import { IndicatorSystem } from './systems/IndicatorSystem';
 import { VisualEffects } from './systems/VisualEffects';
 import { UpgradeManager } from '../upgrades/UpgradeManager';
+import { metaManager } from '../upgrades/meta/MetaUpgradeManager';
 import { useGameStore } from '../stores/gameStore';
 import { useUpgradeStore } from '../stores/upgradeStore';
 
@@ -27,6 +29,7 @@ export class GameEngine {
 
     private nodesContainer: PIXI.Container;
     private gemsContainer: PIXI.Container;
+    private obstaclesContainer: PIXI.Container;
     private enemiesContainer: PIXI.Container;
     private projectilesContainer: PIXI.Container;
     private effectsContainer: PIXI.Container;
@@ -35,7 +38,9 @@ export class GameEngine {
     public projectiles: Projectile[] = [];
     public xpGems: XpGem[] = [];
     public resourceNodes: ResourceNode[] = [];
+    public obstacles: Obstacle[] = [];
     private respawnQueue: { type: 'mineral' | 'gas', time: number }[] = [];
+    private stimKillCounter: number = 0;
 
     private input: InputManager;
     private gameStore = useGameStore();
@@ -49,6 +54,7 @@ export class GameEngine {
 
         this.nodesContainer = new PIXI.Container();
         this.gemsContainer = new PIXI.Container();
+        this.obstaclesContainer = new PIXI.Container();
         this.enemiesContainer = new PIXI.Container();
         this.projectilesContainer = new PIXI.Container();
         this.effectsContainer = new PIXI.Container();
@@ -75,6 +81,7 @@ export class GameEngine {
 
         this.background = new BackgroundSystem(this.app.stage);
 
+        this.app.stage.addChild(this.obstaclesContainer);
         this.app.stage.addChild(this.nodesContainer);
         this.app.stage.addChild(this.gemsContainer);
         this.app.stage.addChild(this.enemiesContainer);
@@ -94,15 +101,37 @@ export class GameEngine {
             '/characters/monsters/monster1.png',
             '/characters/monsters/monster2.png',
             '/ui/field_minerals.png',
-            '/ui/field_gas.png'
+            '/ui/field_gas.png',
+            '/obstacles/building.png',
+            '/obstacles/wall.png',
+            '/obstacles/water.png',
+            '/obstacles/trees.png',
+            '/obstacles/rocks.png',
         ]);
 
         this.player = new Player();
         this.app.stage.addChild(this.player.container);
 
+        // Unlock meta-starting weapons
+        const startWeapons = metaManager.getStartingWeapons()
+        for (const wid of startWeapons) {
+            this.gameStore.unlockWeapon(wid as any)
+        }
+
         this.indicatorSystem = new IndicatorSystem(this.app.stage, this.player.container);
 
         this.spawnInitialResourceNodes();
+        this.spawnInitialObstacles();
+
+        // ── Pause on Space ──
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !this.gameStore.isGameOver) {
+                e.preventDefault();
+                if (!this.gameStore.showUpgradeOverlay && !this.gameStore.showSpecializationChoice) {
+                    this.gameStore.isPaused = !this.gameStore.isPaused;
+                }
+            }
+        });
 
         this.app.ticker.add((ticker) => {
             this.update(ticker.deltaTime);
@@ -129,8 +158,37 @@ export class GameEngine {
         this.player.update(delta, nearestEnemy ? nearestEnemy.container : null);
 
         const move = this.input.movementVector;
-        const playerVelX = move.x * this.player.speed * delta;
-        const playerVelY = move.y * this.player.speed * delta;
+        let playerVelX = move.x * this.player.speed * delta;
+        let playerVelY = move.y * this.player.speed * delta;
+
+        // ── Player obstacle collision (slide along edges) ──
+        const playerCollisionR = 22;
+        const wouldCollide = (x: number, y: number): boolean => {
+            for (const obs of this.obstacles) {
+                if (obs.isDestroyed) continue;
+                const dx = x - obs.container.x;
+                const dy = y - obs.container.y;
+                if (Math.sqrt(dx * dx + dy * dy) < playerCollisionR + obs.radius) return true;
+            }
+            return false;
+        };
+        const desiredX = this.player.container.x + playerVelX;
+        const desiredY = this.player.container.y + playerVelY;
+        if (wouldCollide(desiredX, desiredY)) {
+            // Try X-axis only
+            if (!wouldCollide(desiredX, this.player.container.y)) {
+                playerVelY = 0;
+            }
+            // Try Y-axis only
+            else if (!wouldCollide(this.player.container.x, desiredY)) {
+                playerVelX = 0;
+            }
+            // Both blocked
+            else {
+                playerVelX = 0;
+                playerVelY = 0;
+            }
+        }
 
         if (this.background) {
             this.background.update(
@@ -162,6 +220,19 @@ export class GameEngine {
                 p.destroy();
                 return false;
             }
+
+            // ── Projectile vs obstacle collision ──
+            for (const obs of this.obstacles) {
+                if (obs.isDestroyed || !obs.blocksProjectiles) continue;
+                const dx = p.container.x - obs.container.x;
+                const dy = p.container.y - obs.container.y;
+                if (Math.sqrt(dx * dx + dy * dy) < obs.radius + 6) {
+                    VisualEffects.impactEffect(p.container.x, p.container.y, 0x666666);
+                    p.destroy();
+                    return false;
+                }
+            }
+
             return true;
         });
 
@@ -237,6 +308,27 @@ export class GameEngine {
             }
         }
 
+        // ── Obstacles: scroll & maintain ──
+        this.obstacles = this.obstacles.filter(obs => {
+            if (obs.isDestroyed) { obs.destroy(); return false; }
+            obs.container.x -= playerVelX;
+            obs.container.y -= playerVelY;
+            const dx = obs.container.x - this.player!.container.x;
+            const dy = obs.container.y - this.player!.container.y;
+            // Cull far obstacles
+            if (Math.sqrt(dx * dx + dy * dy) > 3500) { obs.destroy(); return false; }
+            return true;
+        });
+
+        // Spawn new obstacle clusters if running low
+        if (this.obstacles.length < 20 && Math.random() < 0.01) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 800 + Math.random() * 500;
+            const cx = this.player!.container.x + Math.cos(angle) * radius;
+            const cy = this.player!.container.y + Math.sin(angle) * radius;
+            this.spawnObstacleCluster(cx, cy);
+        }
+
         this.enemies = this.enemies.filter(enemy => {
             if (enemy.isDestroyed) {
                 enemy.destroy();
@@ -244,7 +336,30 @@ export class GameEngine {
             }
             enemy.container.x -= playerVelX;
             enemy.container.y -= playerVelY;
+            const prevX = enemy.container.x;
+            const prevY = enemy.container.y;
             enemy.updateWithPlayer(delta, this.player!.container);
+
+            // ── Enemy vs obstacle collision ──
+            for (const obs of this.obstacles) {
+                if (obs.isDestroyed) continue;
+                const dx = enemy.container.x - obs.container.x;
+                const dy = enemy.container.y - obs.container.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 22 + obs.radius) {
+                    if (enemy.isFlying) {
+                        // Flying: slow down when passing through
+                        enemy.container.x = prevX + (enemy.container.x - prevX) * obs.slowFactor;
+                        enemy.container.y = prevY + (enemy.container.y - prevY) * obs.slowFactor;
+                    } else {
+                        // Ground: blocked — revert to previous position
+                        enemy.container.x = prevX;
+                        enemy.container.y = prevY;
+                    }
+                    break;
+                }
+            }
+
             enemy.lastX = enemy.container.x;
             enemy.lastY = enemy.container.y;
             if (this.background) {
@@ -301,6 +416,9 @@ export class GameEngine {
                         p.hitEnemies.add(enemy);
                         VisualEffects.impactEffect(hitX, hitY, 0x67f8ff);
 
+                        // Chain lightning
+                        this.handleChainLightning(hitX, hitY, p.damage, enemy);
+
                         // Also spawn a trail segment behind the projectile
                         VisualEffects.trailSegment(
                             px - p.direction.x * 10,
@@ -320,6 +438,10 @@ export class GameEngine {
                     // ── Normal direct hit (gauss, minigun) ──
                     enemy.takeDamage(p.damage);
                     VisualEffects.impactEffect(hitX, hitY, splashRadius > 0 ? 0xff8c42 : 0xffcf4d);
+
+                    // Chain lightning
+                    this.handleChainLightning(hitX, hitY, p.damage, enemy);
+
                     const directHitKilledEnemy = enemy.isDestroyed;
 
                     // Ricochet check
@@ -389,6 +511,33 @@ export class GameEngine {
         return nearest;
     }
 
+        /** Chain lightning: after a hit, arc to nearby enemies */
+    private handleChainLightning(hitX: number, hitY: number, damage: number, hitEnemy: Enemy) {
+        const behavior = this.upgradeStore.activeBehaviors.find((b: any) => b.behaviorId === 'chain_lightning');
+        if (!behavior) return;
+
+        const maxTargets = behavior.params.maxTargets ?? 2;
+        const damagePercent = behavior.params.damagePercent ?? 0.5;
+        const chainRadius = behavior.params.chainRadius ?? 150;
+
+        let targetsFound = 0;
+        for (const target of this.enemies) {
+            if (target.isDestroyed || target === hitEnemy) continue;
+            const dx = target.container.x - hitX;
+            const dy = target.container.y - hitY;
+            if (Math.sqrt(dx * dx + dy * dy) <= chainRadius) {
+                const chainDmg = damage * damagePercent;
+                target.takeDamage(chainDmg);
+                VisualEffects.impactEffect(target.container.x, target.container.y, 0x00f2ff);
+                targetsFound++;
+                if (target.isDestroyed) {
+                    this.handleEnemyKilled(target, target.container.x, target.container.y);
+                }
+                if (targetsFound >= maxTargets) break;
+            }
+        }
+    }
+
     public get stage() {
         return this.app.stage;
     }
@@ -420,6 +569,38 @@ export class GameEngine {
         }
 
         this.gameStore.kills++;
+
+        // ── Stim Pack: on kill streak trigger ──
+        const stim = this.upgradeStore.activeBehaviors.find((b: any) => b.behaviorId === 'stim_pack');
+        if (stim) {
+            const threshold = Math.max(1, Math.round(stim.params.triggerOnKills ?? 10));
+            this.stimKillCounter++;
+            if (this.stimKillCounter >= threshold) {
+                this.stimKillCounter = 0;
+                const speedBonus = stim.params.speedBonus ?? 0.5;
+                const dmgBonus = stim.params.damageBonus ?? 0.25;
+                const duration = (stim.params.duration ?? 3) * 1000; // ms
+
+                // Apply bonuses
+                this.upgradeStore.statMultipliers.speedMult *= (1 + speedBonus);
+                this.upgradeStore.statMultipliers.damageMult *= (1 + dmgBonus);
+
+                // Visual feedback
+                if (this.player) {
+                    VisualEffects.explosionEffect(
+                        this.player.container.x,
+                        this.player.container.y,
+                        40, 0xff4444,
+                    );
+                }
+
+                // Revert after duration
+                setTimeout(() => {
+                    this.upgradeStore.statMultipliers.speedMult /= (1 + speedBonus);
+                    this.upgradeStore.statMultipliers.damageMult /= (1 + dmgBonus);
+                }, duration);
+            }
+        }
 
         const lifesteal = this.upgradeStore.statMultipliers.lifesteal || this.gameStore.baseStats.lifesteal || 0;
         if (lifesteal > 0 && this.player) {
@@ -464,6 +645,56 @@ export class GameEngine {
             const node = new ResourceNode(clusterX + offsetX, clusterY + offsetY, 'gas');
             this.resourceNodes.push(node);
             this.nodesContainer.addChild(node.container);
+        }
+    }
+
+    /* ─── Obstacle spawning ─── */
+
+    private readonly OBSTACLE_TYPES: ObstacleType[] = ['building', 'wall', 'water', 'trees', 'rocks'];
+
+    private spawnInitialObstacles() {
+        // Ring of obstacle clusters around starting position
+        const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        for (let ring = 0; ring < 2; ring++) {
+            const count = 4 + ring * 2;
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+                const distance = 600 + ring * 400 + Math.random() * 300;
+                const cx = center.x + Math.cos(angle) * distance;
+                const cy = center.y + Math.sin(angle) * distance;
+                this.spawnObstacleCluster(cx, cy);
+            }
+        }
+    }
+
+    private spawnObstacleCluster(cx: number, cy: number) {
+        // Pick a theme for this cluster
+        const theme = this.OBSTACLE_TYPES[Math.floor(Math.random() * this.OBSTACLE_TYPES.length)];
+        const count = theme === 'water' ? 1 + Math.floor(Math.random() * 2)
+            : theme === 'rocks' ? 3 + Math.floor(Math.random() * 3)
+            : 2 + Math.floor(Math.random() * 3);
+
+        for (let i = 0; i < count; i++) {
+            const offsetX = (Math.random() - 0.5) * 100;
+            const offsetY = (Math.random() - 0.5) * 80;
+            const ox = cx + offsetX;
+            const oy = cy + offsetY;
+
+            // Don't spawn on top of other obstacles
+            let tooClose = false;
+            for (const existing of this.obstacles) {
+                const dx = ox - existing.container.x;
+                const dy = oy - existing.container.y;
+                if (Math.sqrt(dx * dx + dy * dy) < existing.radius + 20) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+
+            const obs = new Obstacle(ox, oy, theme);
+            this.obstacles.push(obs);
+            this.obstaclesContainer.addChild(obs.container);
         }
     }
 }

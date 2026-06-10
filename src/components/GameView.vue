@@ -49,6 +49,19 @@
       @unlock-weapon="handleShopWeaponUnlock"
     />
 
+    <Transition name="evo-fade">
+      <div v-if="showLevelUpFlash" class="overlay overlay--levelup">
+        <div class="levelup-card" :class="{ 'levelup-card--terran': isTerran }">
+          <div class="levelup-icon">⬆</div>
+          <div class="levelup-title">LEVEL UP</div>
+          <div class="levelup-level">Level {{ gameStore.level }}</div>
+          <div class="levelup-stage" v-if="gameStore.currentStage">
+            {{ gameStore.currentStage.name }}
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <UpgradeChoice
       :show="showUpgradeChoice"
       :choices="upgradeChoices"
@@ -163,6 +176,7 @@ const showMetaPanel = ref(false);
 const evolutionName = ref('');
 const evolutionDesc = ref('');
 const creditsEarned = ref(0);
+const showLevelUpFlash = ref(false);
 
 const isTerran = computed(() => gameStore.race === 'HUMANS');
 const clampedXpPercentage = computed(() => Math.min(100, Math.max(0, gameStore.xpPercentage)));
@@ -185,10 +199,17 @@ watch(() => gameStore.showUpgradeOverlay, (show) => {
       return;
     }
 
-    const choices = engine.upgradeManager.getChoices(3);
-    upgradeChoices.value = choices;
-    showUpgradeChoice.value = true;
+    // Show level-up flash first, then choices after 1s
+    showLevelUpFlash.value = true;
+    setTimeout(() => {
+      if (!gameStore.showUpgradeOverlay) return; // cancelled
+      const choices = engine.upgradeManager.getChoices(3);
+      upgradeChoices.value = choices;
+      showLevelUpFlash.value = false;
+      showUpgradeChoice.value = true;
+    }, 1000);
   } else {
+    showLevelUpFlash.value = false;
     showUpgradeChoice.value = false;
   }
 });
@@ -321,3 +342,82 @@ onMounted(async () => {
   });
 });
 </script>
+
+<style scoped>
+/* Level-up flash overlay */
+.overlay--levelup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.levelup-card {
+  background: linear-gradient(135deg, #1a2a1a, #0a1a0a);
+  border: 2px solid #00ff41;
+  border-radius: 20px;
+  padding: 48px 64px;
+  text-align: center;
+  animation: levelup-pulse 0.6s ease-in-out infinite alternate;
+}
+
+.levelup-card--terran {
+  border-color: #00f2ff;
+  background: linear-gradient(135deg, #0a1a2a, #0a0a1a);
+}
+
+.levelup-icon {
+  font-size: 80px;
+  margin-bottom: 16px;
+  animation: levelup-bounce 1s ease infinite;
+}
+
+.levelup-title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #00ff41;
+  letter-spacing: 8px;
+  text-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+}
+
+.levelup-card--terran .levelup-title {
+  color: #00f2ff;
+  text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+}
+
+.levelup-level {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.levelup-stage {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+@keyframes levelup-pulse {
+  from { box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
+  to { box-shadow: 0 0 60px rgba(0, 255, 65, 0.7); }
+}
+
+@keyframes levelup-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* evo-fade transition used by the level-up flash */
+.evo-fade-enter-active,
+.evo-fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.evo-fade-enter-from,
+.evo-fade-leave-to {
+  opacity: 0;
+}
+</style>

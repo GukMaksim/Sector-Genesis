@@ -100,10 +100,11 @@ const effectDescriptions = (upgrade: UpgradeDef) => {
         descs.push(`+${value} ${label}`)
       }
     } else if (effect.type === 'behavior') {
+      const nextLv = currentLevel(upgrade.id) + 1
       const labels: Record<string, string> = {
-        ricochet: `BOUNCE (${effect.params.maxBounces}x)`,
-        stim_pack: `STIM (every ${effect.params.triggerOnKills} kills)`,
-        chain_lightning: `CHAIN (${effect.params.maxTargets} targets)`,
+        ricochet: `BOUNCE (${effect.params.maxBounces * nextLv}x, ${Math.round((1 - effect.params.damageFalloff) * 100)}% dmg)`,
+        stim_pack: `STIM (+${effect.params.speedBonus * nextLv * 100}% speed, +${effect.params.damageBonus * nextLv * 100}% dmg, every ${Math.round(effect.params.triggerOnKills / nextLv)} kills)`,
+        chain_lightning: `CHAIN (${effect.params.maxTargets * nextLv} targets, ${Math.round(effect.params.damagePercent * 100)}% dmg)`,
       }
       descs.push(labels[effect.behaviorId] || effect.behaviorId)
     } else if (effect.type === 'weapon_mod') {

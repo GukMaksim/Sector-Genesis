@@ -30,10 +30,34 @@ abstract class BaseWeapon implements WeaponInstance {
 
     public abstract update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[];
 
+    /** Returns weapon-specific mod multiplier for a stat (default 1) */
+    protected getWeaponModMult(stat: string): number {
+        const engine = (window as any).gameEngine;
+        if (!engine?.upgradeManager) return 1;
+        const mods = engine.upgradeManager.getWeaponMod(this.id);
+        let mult = 1;
+        for (const m of mods) {
+            if (m.stat === stat && m.mode === 'mult') mult *= (1 + m.value * m.level);
+        }
+        return mult;
+    }
+
+    /** Returns weapon-specific mod additive bonus for a stat (default 0) */
+    protected getWeaponModAdd(stat: string): number {
+        const engine = (window as any).gameEngine;
+        if (!engine?.upgradeManager) return 0;
+        const mods = engine.upgradeManager.getWeaponMod(this.id);
+        let add = 0;
+        for (const m of mods) {
+            if (m.stat === stat && m.mode === 'add') add += m.value * m.level;
+        }
+        return add;
+    }
+
     protected getDamage(baseDamage: number) {
         const stats = this.upgradeStore.statMultipliers;
         const crit = Math.random() < stats.criticalChance;
-        return baseDamage * stats.damageMult * (crit ? 1.6 : 1);
+        return baseDamage * stats.damageMult * this.getWeaponModMult('damage') * (crit ? 1.6 : 1);
     }
 
     protected getProjectileScale() {
@@ -41,11 +65,11 @@ abstract class BaseWeapon implements WeaponInstance {
     }
 
     protected getProjectileSpeed(baseSpeed: number) {
-        return baseSpeed * (1 + this.upgradeStore.statMultipliers.projectileSpeedMult);
+        return baseSpeed * (1 + this.upgradeStore.statMultipliers.projectileSpeedMult) * this.getWeaponModMult('projectileSpeed');
     }
 
     protected getProjectileCount() {
-        return 1 + this.upgradeStore.statMultipliers.projectileCountBonus;
+        return 1 + this.upgradeStore.statMultipliers.projectileCountBonus + this.getWeaponModAdd('projectileCount');
     }
 
     protected getNearestEnemy(x: number, y: number, enemies: Enemy[]) {
@@ -119,6 +143,7 @@ export class GaussRifle extends BaseWeapon {
             const spread = (index - centerOffset) * spreadStep;
             const spreadDirection = rotateDirection(direction, spread);
             const damage = this.getDamage(14 * (1 + this.level * 0.15));
+            const hasPierce = this.getWeaponModAdd('pierce') > 0;
             const projectile = new Projectile(x, y, spreadDirection, {
                 speed: this.getProjectileSpeed(12),
                 damage,
@@ -126,6 +151,7 @@ export class GaussRifle extends BaseWeapon {
                 color: 0xffcf4d,
                 lifeTime: 1800,
                 ricochet,
+                pierce: hasPierce,
             });
             stage.addChild(projectile.container);
             projectiles.push(projectile);

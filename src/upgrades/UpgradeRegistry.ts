@@ -1,6 +1,7 @@
 import { DAMAGE_UPGRADES } from './runes/damageUpgrades'
 import { UTILITY_UPGRADES } from './runes/utilityUpgrades'
 import { WEAPON_UPGRADES } from './runes/weaponUpgrades'
+import { EVOLUTION_UPGRADES } from './runes/evolutionUpgrades'
 import { EVOLUTION_DEFS } from './evolutions'
 import type { UpgradeDef, EvolutionDef } from './types'
 
@@ -13,7 +14,7 @@ class UpgradeRegistry {
   }
 
   private registerAll(): void {
-    const allUpgrades = [...DAMAGE_UPGRADES, ...UTILITY_UPGRADES, ...WEAPON_UPGRADES]
+    const allUpgrades = [...DAMAGE_UPGRADES, ...UTILITY_UPGRADES, ...WEAPON_UPGRADES, ...EVOLUTION_UPGRADES]
     for (const upgrade of allUpgrades) {
       this.upgrades.set(upgrade.id, upgrade)
     }

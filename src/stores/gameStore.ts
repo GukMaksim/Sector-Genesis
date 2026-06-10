@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { HUMAN_CONFIG } from '../config/human.config';
+import { useUpgradeStore } from './upgradeStore';
 import type {
     EvolutionStage,
     RaceType,
@@ -70,7 +71,8 @@ export const useGameStore = defineStore('game', {
     },
     actions: {
         addXp(amount: number) {
-            this.xp += amount * this.baseStats.xpGainMult;
+            const upgradeStore = useUpgradeStore()
+            this.xp += amount * upgradeStore.statMultipliers.xpGainMult;
             while (this.xp >= this.nextLevelXp) {
                 this.levelUp();
                 if (this.showUpgradeOverlay) break;
