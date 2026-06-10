@@ -5,12 +5,13 @@ import type { WeaponId } from '../types/game';
 
 const gameStore = useGameStore();
 
+const isTerran = computed(() => gameStore.race === 'HUMANS');
+
 const weaponDetails = {
-  gauss_rifle: { name: 'Gauss Rifle', icon: '🔫', key: '1' },
-  minigun: { name: 'Minigun', icon: '🌀', key: '2' },
-  rocket_launcher: { name: 'Rocket Launcher', icon: '🚀', key: '3' },
-  plasma_cannon: { name: 'Plasma Cannon', icon: '💥', key: '4' },
-  orbital_laser: { name: 'Orbital Laser', icon: '⚡', key: '5' }
+  gauss_rifle: { name: 'Gauss Rifle', icon: '/characters/marine/weapons/gauss-rifle.png', key: '1' },
+  minigun: { name: 'Minigun', icon: '/characters/marine/weapons/minigun.png', key: '2' },
+  rocket_launcher: { name: 'Rocket Launcher', icon: '/characters/marine/weapons/rocket-launcher.png', key: '3' },
+  plasma_cannon: { name: 'Plasma Cannon', icon: '/characters/marine/weapons/plasma-cannon.png', key: '4' },
 };
 
 const hotbarWeapons = computed(() => {
@@ -47,8 +48,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="!gameStore.isGameOver" class="weapon-hotbar-container">
-    <div class="hotbar-label">TACTICAL WEAPON SELECTION</div>
+  <div v-if="!gameStore.isGameOver" class="weapon-hotbar-container" :class="{ 'weapon-hotbar--terran': isTerran }">
+    <div class="hotbar-label" :class="{ 'hotbar-label--terran': isTerran }">TACTICAL WEAPON SYSTEMS</div>
     <div class="hotbar-slots">
       <button
         v-for="(weapon, index) in hotbarWeapons"
@@ -58,7 +59,8 @@ onUnmounted(() => {
         @click="selectWeapon(weapon.id)"
       >
         <span class="hotbar-slot__key">{{ index + 1 }}</span>
-        <span class="hotbar-slot__icon">{{ weapon.icon }}</span>
+        <img v-if="weapon.icon.startsWith('/')" :src="weapon.icon" class="hotbar-slot__img" alt="" />
+        <span v-else class="hotbar-slot__icon">{{ weapon.icon }}</span>
         <span class="hotbar-slot__name">{{ weapon.name }}</span>
       </button>
       
@@ -178,6 +180,15 @@ onUnmounted(() => {
   margin-bottom: 2px;
 }
 
+.hotbar-slot__img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 2px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 4px rgba(240, 184, 0, 0.15));
+}
+
 .hotbar-slot__name {
   font-size: 10px;
   font-weight: 600;
@@ -193,5 +204,45 @@ onUnmounted(() => {
 .hotbar-slot.is-active .hotbar-slot__name {
   color: white;
   font-weight: 700;
+}
+
+/* ============================
+   TERRAN THEME
+   ============================ */
+.weapon-hotbar--terran .hotbar-slots {
+  background: rgba(20, 25, 40, 0.75);
+  border-color: rgba(240, 184, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(240, 184, 0, 0.04);
+}
+
+.weapon-hotbar--terran .hotbar-slot {
+  background: rgba(26, 30, 46, 0.5);
+  border-color: rgba(240, 184, 0, 0.08);
+}
+
+.weapon-hotbar--terran .hotbar-slot:hover:not(.is-locked) {
+  background: rgba(240, 184, 0, 0.08);
+  border-color: rgba(240, 184, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(240, 184, 0, 0.12);
+}
+
+.weapon-hotbar--terran .hotbar-slot.is-active {
+  background: rgba(240, 184, 0, 0.12);
+  border-color: rgba(240, 184, 0, 0.6);
+  box-shadow: 0 0 15px rgba(240, 184, 0, 0.25), inset 0 0 8px rgba(240, 184, 0, 0.12);
+}
+
+.weapon-hotbar--terran .hotbar-slot.is-active::after {
+  background: rgba(240, 184, 0, 0.8);
+  box-shadow: 0 0 8px rgba(240, 184, 0, 0.5);
+}
+
+.weapon-hotbar--terran .hotbar-slot.is-active .hotbar-slot__key {
+  color: rgba(240, 184, 0, 0.9);
+}
+
+.hotbar-label--terran {
+  color: rgba(240, 184, 0, 0.7) !important;
+  text-shadow: 0 0 8px rgba(240, 184, 0, 0.3) !important;
 }
 </style>

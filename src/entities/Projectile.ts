@@ -1,5 +1,8 @@
 import * as PIXI from 'pixi.js';
 import { Entity } from './Entity';
+import type { Enemy } from './Enemy';
+
+export type ProjectileShape = 'rect' | 'circle';
 
 export interface ProjectileOptions {
     speed?: number;
@@ -15,6 +18,7 @@ export interface ProjectileOptions {
         bouncesLeft: number;
     };
     pierce?: boolean;
+    shape?: ProjectileShape;
 }
 
 export class Projectile extends Entity {
@@ -26,6 +30,8 @@ export class Projectile extends Entity {
     public ricochet: ProjectileOptions['ricochet'];
     public pierce: boolean = false;
     public elapsed: number = 0;
+    /** Enemies already hit by a piercing projectile — prevents double-hits */
+    public hitEnemies: Set<Enemy> = new Set();
 
     constructor(x: number, y: number, direction: { x: number, y: number }, options: ProjectileOptions = {}) {
         super();
@@ -39,10 +45,17 @@ export class Projectile extends Entity {
 
         const graphics = new PIXI.Graphics();
         const size = options.size ?? 1;
-        const halfWidth = 5 * size;
-        const halfHeight = 2 * size;
-        graphics.rect(-halfWidth, -halfHeight, halfWidth * 2, halfHeight * 2);
-        graphics.fill(options.color ?? 0xffff00);
+        const shape = options.shape ?? 'rect';
+        if (shape === 'circle') {
+            const r = 6 * size;
+            graphics.circle(0, 0, r);
+            graphics.fill(options.color ?? 0x67f8ff);
+        } else {
+            const halfWidth = 5 * size;
+            const halfHeight = 2 * size;
+            graphics.rect(-halfWidth, -halfHeight, halfWidth * 2, halfHeight * 2);
+            graphics.fill(options.color ?? 0xffff00);
+        }
         this.setVisual(graphics);
         this.container.x = x;
         this.container.y = y;

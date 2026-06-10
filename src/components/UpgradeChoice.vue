@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
       <div class="overlay-header">
         <div class="panel-kicker">LEVEL UP!</div>
         <h2 class="overlay-title">Choose an Upgrade</h2>
@@ -9,7 +9,7 @@
 
       <div v-if="choices.length === 0" class="empty-pool">
         <p>No upgrades available. Continue battle.</p>
-        <button class="cta-button cta-button--secondary" @click="$emit('skip')">
+        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('skip')">
           Continue
         </button>
       </div>
@@ -19,7 +19,7 @@
           v-for="choice in choices"
           :key="choice.id"
           class="upgrade-card"
-          :class="[`upgrade-card--${choice.rarity}`]"
+          :class="[`upgrade-card--${choice.rarity}`, { 'upgrade-card--terran': isTerran }]"
           :style="{ '--rarity-color': rarityColor(choice.rarity) }"
           @click="$emit('pick', choice.id)"
         >
@@ -47,6 +47,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useGameStore } from '../stores/gameStore'
 import { useUpgradeStore } from '../stores/upgradeStore'
 import type { UpgradeDef } from '../upgrades/types'
 import { RARITY_COLORS } from '../upgrades/types'
@@ -61,7 +63,9 @@ defineEmits<{
   skip: []
 }>()
 
+const gameStore = useGameStore()
 const upgradeStore = useUpgradeStore()
+const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const rarityColor = (rarity: string) => RARITY_COLORS[rarity as keyof typeof RARITY_COLORS] || '#ffffff'
 

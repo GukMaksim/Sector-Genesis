@@ -3,6 +3,7 @@ import { Enemy } from '../../entities/Enemy';
 import { Projectile } from '../../entities/Projectile';
 import { useGameStore } from '../../stores/gameStore';
 import { useUpgradeStore } from '../../stores/upgradeStore';
+import { VisualEffects } from './VisualEffects';
 import type { WeaponId } from '../../types/game';
 
 export type EnemyKilledCallback = (enemy: Enemy, x?: number, y?: number) => void;
@@ -81,7 +82,17 @@ abstract class BaseWeapon implements WeaponInstance {
             bouncesLeft: behavior.params.maxBounces,
         };
     }
+
+    /** Direction from (x,y) to (targetX,targetY). */
+    protected getDirection(x: number, y: number, targetX: number, targetY: number) {
+        const dx = targetX - x;
+        const dy = targetY - y;
+        const dist = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
+        return { x: dx / dist, y: dy / dist };
+    }
 }
+
+/* ─── Gauss Rifle ─────────────────────────────────────────── */
 
 export class GaussRifle extends BaseWeapon {
     public id: WeaponId = 'gauss_rifle';
@@ -101,10 +112,13 @@ export class GaussRifle extends BaseWeapon {
         const projectiles: Projectile[] = [];
         const ricochet = this.getRicochetOptions();
 
+        // Muzzle flash
+        VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0xffcf4d);
+
         for (let index = 0; index < count; index++) {
             const spread = (index - centerOffset) * spreadStep;
             const spreadDirection = rotateDirection(direction, spread);
-            const damage = this.getDamage(10 * (1 + this.level * 0.12));
+            const damage = this.getDamage(14 * (1 + this.level * 0.15));
             const projectile = new Projectile(x, y, spreadDirection, {
                 speed: this.getProjectileSpeed(12),
                 damage,
@@ -118,14 +132,9 @@ export class GaussRifle extends BaseWeapon {
         }
         return projectiles;
     }
-
-    private getDirection(x: number, y: number, targetX: number, targetY: number) {
-        const dx = targetX - x;
-        const dy = targetY - y;
-        const dist = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
-        return { x: dx / dist, y: dy / dist };
-    }
 }
+
+/* ─── Minigun ────────────────────────────────────────────── */
 
 export class Minigun extends BaseWeapon {
     public id: WeaponId = 'minigun';
@@ -143,9 +152,12 @@ export class Minigun extends BaseWeapon {
         const projectiles: Projectile[] = [];
         const ricochet = this.getRicochetOptions();
 
+        // Muzzle flash (small)
+        VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0x9dd7ff);
+
         for (let index = 0; index < burstCount; index++) {
             const spread = (Math.random() - 0.5) * 0.1;
-            const damage = this.getDamage(4.5 * (1 + this.level * 0.08));
+            const damage = this.getDamage(2.5 * (1 + this.level * 0.1));
             const projectile = new Projectile(x, y, rotateDirection(direction, spread), {
                 speed: this.getProjectileSpeed(15),
                 damage,
@@ -159,14 +171,9 @@ export class Minigun extends BaseWeapon {
         }
         return projectiles;
     }
-
-    private getDirection(x: number, y: number, targetX: number, targetY: number) {
-        const dx = targetX - x;
-        const dy = targetY - y;
-        const dist = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
-        return { x: dx / dist, y: dy / dist };
-    }
 }
+
+/* ─── Rocket Launcher ────────────────────────────────────── */
 
 export class RocketLauncher extends BaseWeapon {
     public id: WeaponId = 'rocket_launcher';
@@ -180,25 +187,24 @@ export class RocketLauncher extends BaseWeapon {
         if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
+
+        // Muzzle flash
+        VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0xff8c42);
+
         const projectile = new Projectile(x, y, direction, {
             speed: this.getProjectileSpeed(8),
-            damage: this.getDamage(24 * (1 + this.level * 0.16)),
+            damage: this.getDamage(32 * (1 + this.level * 0.18)),
             size: this.getProjectileScale() * 1.3,
             color: 0xff8c42,
             lifeTime: 2500,
-            splashRadius: 72 + this.level * 12,
+            splashRadius: 80 + this.level * 12,
         });
         stage.addChild(projectile.container);
         return [projectile];
     }
-
-    private getDirection(x: number, y: number, targetX: number, targetY: number) {
-        const dx = targetX - x;
-        const dy = targetY - y;
-        const dist = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
-        return { x: dx / dist, y: dy / dist };
-    }
 }
+
+/* ─── Plasma Cannon ──────────────────────────────────────── */
 
 export class PlasmaCannon extends BaseWeapon {
     public id: WeaponId = 'plasma_cannon';
@@ -212,25 +218,25 @@ export class PlasmaCannon extends BaseWeapon {
         if (!target) return [];
         this.lastFireTime = now;
         const direction = this.getDirection(x, y, target.container.x, target.container.y);
+
+        // Muzzle flash
+        VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0x67f8ff);
+
         const projectile = new Projectile(x, y, direction, {
             speed: this.getProjectileSpeed(10),
-            damage: this.getDamage(34 * (1 + this.level * 0.2)),
+            damage: this.getDamage(38 * (1 + this.level * 0.22)),
             size: this.getProjectileScale() * 1.5,
             color: 0x67f8ff,
             lifeTime: 2200,
-            splashRadius: 36 + this.level * 6,
+            pierce: true, // flies through all enemies in its path
+            shape: 'circle',
         });
         stage.addChild(projectile.container);
         return [projectile];
     }
-
-    private getDirection(x: number, y: number, targetX: number, targetY: number) {
-        const dx = targetX - x;
-        const dy = targetY - y;
-        const dist = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
-        return { x: dx / dist, y: dy / dist };
-    }
 }
+
+/* ─── Orbital Laser ──────────────────────────────────────── */
 
 export class OrbitalLaser extends BaseWeapon {
     public id: WeaponId = 'orbital_laser';
@@ -254,6 +260,9 @@ export class OrbitalLaser extends BaseWeapon {
     }
 
     private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: EnemyKilledCallback) {
+        // Visual warning flash
+        VisualEffects.explosionEffect(tx, ty, 60, 0x00f2ff);
+
         const laser = new PIXI.Graphics();
         laser.rect(-4, -1000, 8, 1000);
         laser.fill(0x00f2ff);
@@ -278,6 +287,9 @@ export class OrbitalLaser extends BaseWeapon {
             }
         }
 
+        // Impact sparks at strike center
+        VisualEffects.impactEffect(tx, ty, 0x00f2ff);
+
         let life = 1.0;
         const ticker = (tickerObj: PIXI.Ticker) => {
             if (laser.destroyed) {
@@ -298,6 +310,8 @@ export class OrbitalLaser extends BaseWeapon {
         PIXI.Ticker.shared.add(ticker);
     }
 }
+
+/* ─── WeaponSystem ───────────────────────────────────────── */
 
 export class WeaponSystem {
     public equipped: WeaponInstance[] = [];

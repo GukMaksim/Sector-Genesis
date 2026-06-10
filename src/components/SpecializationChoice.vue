@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
       <div class="overlay-header">
         <div class="panel-kicker">SPECIALIZATION AVAILABLE</div>
         <h2 class="overlay-title">Choose Your Path</h2>
@@ -14,7 +14,10 @@
           v-for="spec in specs"
           :key="spec.id"
           class="spec-card"
-          :class="{ 'spec-card--disabled': currentSpec !== null && currentSpec !== spec.id }"
+          :class="[
+            { 'spec-card--disabled': currentSpec !== null && currentSpec !== spec.id },
+            { 'spec-card--terran': isTerran }
+          ]"
           :disabled="currentSpec !== null && currentSpec !== spec.id"
           @click="$emit('pick', spec.id)"
         >
@@ -22,7 +25,7 @@
           <div class="spec-card__desc">{{ spec.description }}</div>
           <div class="spec-card__nodes">
             <div v-for="node in spec.nodes" :key="node.id" class="spec-card__node">
-              <span class="spec-card__node-level">LV{{ node.requiredLevel }}</span>
+              <span class="spec-card__node-level" :class="{ 'spec-card__node-level--terran': isTerran }">LV{{ node.requiredLevel }}</span>
               <span class="spec-card__node-name">{{ node.name }}</span>
             </div>
           </div>
@@ -30,7 +33,7 @@
       </div>
 
       <div class="tree-footer">
-        <button class="cta-button cta-button--secondary" @click="$emit('skip')">
+        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('skip')">
           Decide Later
         </button>
       </div>
@@ -39,6 +42,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useGameStore } from '../stores/gameStore'
 import { SPECIALIZATIONS } from '../upgrades/specializations'
 
 defineProps<{
@@ -50,6 +55,9 @@ defineEmits<{
   pick: [id: string]
   skip: []
 }>()
+
+const gameStore = useGameStore()
+const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const specs = SPECIALIZATIONS
 </script>

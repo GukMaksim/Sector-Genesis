@@ -1,39 +1,40 @@
 <template>
   <div id="game-container" class="game-shell">
+    <RaceFrame :race="gameStore.race" />
     <MobileJoystick class="mobile-only" />
     <WeaponHotbar />
 
     <div v-if="!loading" class="hud-layer">
       <header class="hud-top">
-        <section class="hud-brand panel panel--accent panel--compact">
+        <section class="hud-brand panel panel--compact" :class="[isTerran ? 'panel--terran' : 'panel--accent']">
           <div class="panel-kicker">TERRAN COMMAND</div>
           <div class="stage-title">{{ gameStore.currentStage.name }}</div>
-          <div class="stage-meta stage-meta--compact">
-            <span class="pill pill--blue">LV {{ gameStore.level }}</span>
+          <div class="stage-meta stage-meta--compact" :class="{ 'stage-meta--terran': isTerran }">
+            <span class="pill" :class="isTerran ? 'pill--terran' : 'pill--blue'">LV {{ gameStore.level }}</span>
             <span class="pill">{{ formattedTime }}</span>
             <span class="pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ Math.floor(gameStore.minerals) }}</span>
             <span class="pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ Math.floor(gameStore.gas) }}</span>
           </div>
         </section>
 
-        <section class="hud-core panel panel--compact">
+        <section class="hud-core panel panel--compact" :class="{ 'panel--terran': isTerran }">
           <div class="hud-core__label-row">
             <span class="panel-kicker">XP</span>
-            <span class="hud-core__value">{{ Math.floor(gameStore.xpPercentage) }}%</span>
+            <span class="hud-core__value" :class="{ 'hud-core__value--terran': isTerran }">{{ Math.floor(gameStore.xpPercentage) }}%</span>
           </div>
           <div class="progress-track progress-track--xp">
-            <div class="progress-fill progress-fill--xp" :style="{ width: `${clampedXpPercentage}%` }"></div>
+            <div class="progress-fill" :class="isTerran ? 'progress-fill--xp-terran' : 'progress-fill--xp'" :style="{ width: `${clampedXpPercentage}%` }"></div>
           </div>
           <div class="hud-core__label-row" style="margin-top: 4px; gap: 8px;">
-            <button class="pill pill--cta" style="font-size: 0.6rem; padding: 2px 8px;" @click="openShop">ARMORY</button>
+            <button class="pill" :class="isTerran ? 'pill--cta-terran' : 'pill--cta'" style="font-size: 0.6rem; padding: 2px 8px;" @click="openShop">ARMORY</button>
             <span class="mini-stat__label">UPGRADES</span>
             <span class="mini-stat__value">{{ upgradeCount }}</span>
           </div>
         </section>
 
-        <section class="hud-right panel panel--compact">
+        <section class="hud-right panel panel--compact" :class="{ 'panel--terran': isTerran }">
           <span class="mini-stat__label">KILLS</span>
-          <span class="mini-stat__value">{{ gameStore.kills }}</span>
+          <span class="mini-stat__value" :class="{ 'mini-stat__value--terran': isTerran }">{{ gameStore.kills }}</span>
         </section>
       </header>
       <Minimap />
@@ -75,8 +76,8 @@
       @close="closeMetaPanel"
     />
 
-    <div v-if="gameStore.isGameOver" class="overlay overlay--gameover">
-      <div class="overlay-shell overlay-shell--gameover">
+    <div v-if="gameStore.isGameOver" class="overlay" :class="isTerran ? 'overlay--gameover-terran' : 'overlay--gameover'">
+      <div class="overlay-shell overlay-shell--gameover" :class="{ 'overlay-shell--terran': isTerran }">
         <div class="overlay-header overlay-header--center">
           <div class="panel-kicker panel-kicker--danger">MISSION FAILED</div>
           <h2 class="overlay-title overlay-title--danger">Re-deploy to Sector Genesis</h2>
@@ -86,30 +87,30 @@
         </div>
 
         <div class="results-grid">
-          <div class="result-card">
+          <div class="result-card" :class="{ 'result-card--terran': isTerran }">
             <span class="panel-kicker">KILLS</span>
             <strong>{{ gameStore.kills }}</strong>
           </div>
-          <div class="result-card">
+          <div class="result-card" :class="{ 'result-card--terran': isTerran }">
             <span class="panel-kicker">LEVEL</span>
             <strong>{{ gameStore.level }}</strong>
           </div>
-          <div class="result-card">
+          <div class="result-card" :class="{ 'result-card--terran': isTerran }">
             <span class="panel-kicker">TIME</span>
             <strong>{{ formattedTime }}</strong>
           </div>
-          <div class="result-card">
+          <div class="result-card" :class="{ 'result-card--terran': isTerran }">
             <span class="panel-kicker">CREDITS</span>
             <strong>+{{ creditsEarned }}</strong>
           </div>
-          <div class="result-card">
+          <div class="result-card" :class="{ 'result-card--terran': isTerran }">
             <span class="panel-kicker">UPGRADES</span>
             <strong>{{ upgradeCount }}</strong>
           </div>
         </div>
 
         <div class="overlay-actions">
-          <button class="cta-button cta-button--secondary" @click="showMetaPanel = true; creditsEarned = 0;">
+          <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="showMetaPanel = true; creditsEarned = 0;">
             Meta-Upgrades
           </button>
           <button class="cta-button cta-button--danger" @click="restartGame">
@@ -120,13 +121,13 @@
     </div>
 
     <div v-if="loading" class="overlay overlay--loading">
-      <div class="loading-card">
-        <div class="loading-orb" />
+      <div class="loading-card" :class="{ 'loading-card--terran': isTerran }">
+        <div class="loading-orb" :class="{ 'loading-orb--terran': isTerran }" />
         <div class="panel-kicker">INITIALIZING BATTLEFIELD</div>
         <div class="loading-title">LOADING SECTOR</div>
         <div class="loading-copy">Synchronizing tactical systems, rendering battlefield assets, and arming the HUD.</div>
-        <div class="loading-bar">
-          <div class="loading-bar__fill" />
+        <div class="loading-bar" :class="{ 'loading-bar--terran': isTerran }">
+          <div class="loading-bar__fill" :class="{ 'loading-bar__fill--terran': isTerran }" />
         </div>
       </div>
     </div>
@@ -149,6 +150,7 @@ import SpecializationChoice from './SpecializationChoice.vue';
 import EvolutionNotification from './EvolutionNotification.vue';
 import InRunShop from './InRunShop.vue';
 import MetaUpgradePanel from './MetaUpgradePanel.vue';
+import RaceFrame from './RaceFrame.vue';
 
 const loading = ref(true);
 const gameStore = useGameStore();
@@ -162,6 +164,7 @@ const evolutionName = ref('');
 const evolutionDesc = ref('');
 const creditsEarned = ref(0);
 
+const isTerran = computed(() => gameStore.race === 'HUMANS');
 const clampedXpPercentage = computed(() => Math.min(100, Math.max(0, gameStore.xpPercentage)));
 const upgradeCount = computed(() => upgradeStore.activeUpgrades.length);
 

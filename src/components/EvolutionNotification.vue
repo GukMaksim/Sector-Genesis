@@ -1,18 +1,21 @@
 <template>
   <Transition name="evo-fade">
     <div v-if="show" class="evolution-overlay">
-      <div class="evolution-card">
-        <div class="evolution-icon">🔥</div>
-        <div class="evolution-title">EVOLUTION UNLOCKED!</div>
+      <div class="evolution-card" :class="{ 'evolution-card--terran': isTerran }">
+        <div class="evolution-icon">⚙️</div>
+        <div class="evolution-title" :class="{ 'evolution-title--terran': isTerran }">EVOLUTION UNLOCKED!</div>
         <div class="evolution-name">{{ name }}</div>
         <div class="evolution-desc">{{ description }}</div>
-        <button class="evolution-continue" @click="$emit('dismiss')">CONTINUE</button>
+        <button class="evolution-continue" :class="{ 'evolution-continue--terran': isTerran }" @click="$emit('dismiss')">CONTINUE</button>
       </div>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useGameStore } from '../stores/gameStore'
+
 defineProps<{
   show: boolean
   name: string
@@ -22,6 +25,9 @@ defineProps<{
 defineEmits<{
   dismiss: []
 }>()
+
+const gameStore = useGameStore()
+const isTerran = computed(() => gameStore.race === 'HUMANS')
 </script>
 
 <style scoped>

@@ -9,6 +9,7 @@ import { InputManager } from './managers/InputManager';
 import { WeaponSystem } from './systems/WeaponSystem';
 import { SpawnerSystem } from './systems/SpawnerSystem';
 import { IndicatorSystem } from './systems/IndicatorSystem';
+import { VisualEffects } from './systems/VisualEffects';
 import { UpgradeManager } from '../upgrades/UpgradeManager';
 import { useGameStore } from '../stores/gameStore';
 import { useUpgradeStore } from '../stores/upgradeStore';
@@ -28,6 +29,7 @@ export class GameEngine {
     private gemsContainer: PIXI.Container;
     private enemiesContainer: PIXI.Container;
     private projectilesContainer: PIXI.Container;
+    private effectsContainer: PIXI.Container;
 
     public enemies: Enemy[] = [];
     public projectiles: Projectile[] = [];
@@ -49,6 +51,7 @@ export class GameEngine {
         this.gemsContainer = new PIXI.Container();
         this.enemiesContainer = new PIXI.Container();
         this.projectilesContainer = new PIXI.Container();
+        this.effectsContainer = new PIXI.Container();
 
         (window as any).gameEngine = this;
     }
@@ -76,6 +79,9 @@ export class GameEngine {
         this.app.stage.addChild(this.gemsContainer);
         this.app.stage.addChild(this.enemiesContainer);
         this.app.stage.addChild(this.projectilesContainer);
+        this.app.stage.addChild(this.effectsContainer);
+
+        VisualEffects.init(this.effectsContainer);
 
         this.spawner = new SpawnerSystem(this.enemiesContainer);
 
@@ -247,22 +253,33 @@ export class GameEngine {
 
             for (const p of this.projectiles) {
                 if (p.isDestroyed) continue;
-                const dx = p.container.x - enemy.container.x;
-                const dy = p.container.y - enemy.container.y;
+
+                // ── Splash: cache projectile position before any destroy ──
+                const px = p.container.x;
+                const py = p.container.y;
+                const splashRadius = p.splashRadius;
+
+                const dx = px - enemy.container.x;
+                const dy = py - enemy.container.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 25) {
-                    const deathX = enemy.container.x;
-                    const deathY = enemy.container.y;
-                    let directHitKilledEnemy = false;
+                    // Skip if this piercing projectile already hit this enemy
+                    if (p.pierce && p.hitEnemies.has(enemy)) continue;
 
-                    if (p.splashRadius > 0) {
+                    const hitX = enemy.container.x;
+                    const hitY = enemy.container.y;
+
+                    if (splashRadius > 0) {
+                        // ── Splash (rocket) ──
+                        VisualEffects.explosionEffect(px, py, splashRadius, 0xff8c42);
+
                         for (const splashEnemy of this.enemies) {
                             if (splashEnemy.isDestroyed) continue;
-                            const sx = splashEnemy.container.x - p.container.x;
-                            const sy = splashEnemy.container.y - p.container.y;
+                            const sx = splashEnemy.container.x - px;
+                            const sy = splashEnemy.container.y - py;
                             const splashDist = Math.sqrt(sx * sx + sy * sy);
-                            if (splashDist <= p.splashRadius) {
-                                const falloff = 1 - Math.min(1, splashDist / p.splashRadius) * 0.35;
+                            if (splashDist <= splashRadius) {
+                                const falloff = 1 - Math.min(1, splashDist / splashRadius) * 0.35;
                                 const sx2 = splashEnemy.container.x;
                                 const sy2 = splashEnemy.container.y;
                                 splashEnemy.takeDamage(p.damage * falloff);
@@ -271,18 +288,48 @@ export class GameEngine {
                                 }
                             }
                         }
-                    } else {
-                        enemy.takeDamage(p.damage);
-                        directHitKilledEnemy = enemy.isDestroyed;
+                        p.destroy();
+                        // If current enemy was killed by splash, remove from filter now
+                        if (enemy.isDestroyed) return false;
+                        continue;
                     }
 
+                    // ── Direct hit ──
+                    if (p.pierce) {
+                        // Pierce: damage enemy, track hit, projectile lives on
+                        enemy.takeDamage(p.damage);
+                        p.hitEnemies.add(enemy);
+                        VisualEffects.impactEffect(hitX, hitY, 0x67f8ff);
+
+                        // Also spawn a trail segment behind the projectile
+                        VisualEffects.trailSegment(
+                            px - p.direction.x * 10,
+                            py - p.direction.y * 10,
+                            0x67f8ff,
+                            1.5,
+                        );
+
+                        if (enemy.isDestroyed) {
+                            this.handleEnemyKilled(enemy, hitX, hitY);
+                            return false;
+                        }
+                        // Projectile continues — check next enemy
+                        continue;
+                    }
+
+                    // ── Normal direct hit (gauss, minigun) ──
+                    enemy.takeDamage(p.damage);
+                    VisualEffects.impactEffect(hitX, hitY, splashRadius > 0 ? 0xff8c42 : 0xffcf4d);
+                    const directHitKilledEnemy = enemy.isDestroyed;
+
+                    // Ricochet check
                     if (p.ricochet && p.ricochet.bouncesLeft > 0 && !enemy.isDestroyed) {
                         const nextTarget = this.findNearestEnemy(enemy, p.ricochet!.searchRadius);
                         if (nextTarget) {
                             p.ricochet.bouncesLeft--;
                             p.damage *= (1 - p.ricochet.damageFalloff);
-                            const dx2 = nextTarget.container.x - p.container.x;
-                            const dy2 = nextTarget.container.y - p.container.y;
+                            const dx2 = nextTarget.container.x - px;
+                            const dy2 = nextTarget.container.y - py;
                             const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
                             p.direction = { x: dx2 / dist2, y: dy2 / dist2 };
                             p.container.rotation = Math.atan2(p.direction.y, p.direction.x);
@@ -290,17 +337,21 @@ export class GameEngine {
                         }
                     }
 
+                    // Destroy projectile after hit
                     p.destroy();
                     if (enemy.isDestroyed) {
-                        if (directHitKilledEnemy) this.handleEnemyKilled(enemy, deathX, deathY);
+                        if (directHitKilledEnemy) this.handleEnemyKilled(enemy, hitX, hitY);
                         return false;
                     }
                     if (directHitKilledEnemy) {
-                        this.handleEnemyKilled(enemy, deathX, deathY);
+                        this.handleEnemyKilled(enemy, hitX, hitY);
                         return false;
                     }
                 }
             }
+
+            // Skip if killed by splash from another projectile
+            if (enemy.isDestroyed) return false;
 
             const pdx = this.player!.container.x - enemy.container.x;
             const pdy = this.player!.container.y - enemy.container.y;
@@ -313,6 +364,9 @@ export class GameEngine {
             }
             return true;
         });
+
+        // Tick visual effects
+        VisualEffects.updateAll(delta);
 
         if (this.indicatorSystem) {
             this.indicatorSystem.update(this.resourceNodes);

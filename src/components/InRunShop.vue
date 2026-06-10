@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
       <div class="overlay-header">
         <div class="panel-kicker">FIELD ARMORY</div>
         <h2 class="overlay-title">Supplies & Requisitions</h2>
@@ -15,19 +15,19 @@
       </div>
 
       <div class="shop-grid">
-        <button class="shop-item" :disabled="gameStore.minerals < rerollCost" @click="$emit('reroll')">
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < rerollCost" @click="$emit('reroll')">
           <span class="shop-item__icon">🔄</span>
           <span class="shop-item__name">Re-roll Choices</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ rerollCost }}</span>
         </button>
 
-        <button class="shop-item" :disabled="gameStore.gas < extraChoiceCost" @click="$emit('extraChoice')">
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < extraChoiceCost" @click="$emit('extraChoice')">
           <span class="shop-item__icon">➕</span>
           <span class="shop-item__name">Extra Choice</span>
           <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ extraChoiceCost }}</span>
         </button>
 
-        <button class="shop-item" :disabled="gameStore.minerals < healCost" @click="$emit('heal')">
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < healCost" @click="$emit('heal')">
           <span class="shop-item__icon">❤️</span>
           <span class="shop-item__name">Emergency Heal (+40 HP)</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ healCost }}</span>
@@ -35,11 +35,12 @@
 
         <template v-for="weapon in lockedWeapons" :key="weapon.id">
           <button
-            class="shop-item"
+            class="shop-item" :class="{ 'shop-item--terran': isTerran }"
             :disabled="gameStore.minerals < weapon.mineralCost || gameStore.gas < weapon.gasCost"
             @click="$emit('unlockWeapon', weapon.id)"
           >
-            <span class="shop-item__icon">{{ weapon.icon }}</span>
+             <img v-if="weapon.icon.startsWith('/')" :src="weapon.icon" class="shop-item__icon shop-item__icon--img" alt="" />
+             <span v-else class="shop-item__icon">{{ weapon.icon }}</span>
             <span class="shop-item__name">Requisition: {{ weapon.name }}</span>
             <span class="shop-item__cost">
               <span class="pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ weapon.mineralCost }}</span>
@@ -50,7 +51,7 @@
       </div>
 
       <div class="tree-footer">
-        <button class="cta-button cta-button--secondary" @click="$emit('close')">
+        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('close')">
           Close Armory
         </button>
       </div>
@@ -76,16 +77,16 @@ defineProps<{
 }>()
 
 const gameStore = useGameStore()
+const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const rerollCost = 50
 const extraChoiceCost = 30
 const healCost = 75
 
 const weaponRequisitions: { id: WeaponId; name: string; icon: string; mineralCost: number; gasCost: number }[] = [
-  { id: 'minigun', name: 'Minigun', icon: '🌀', mineralCost: 200, gasCost: 100 },
-  { id: 'rocket_launcher', name: 'Rocket Launcher', icon: '🚀', mineralCost: 350, gasCost: 200 },
-  { id: 'plasma_cannon', name: 'Plasma Cannon', icon: '💥', mineralCost: 500, gasCost: 350 },
-  { id: 'orbital_laser', name: 'Orbital Laser', icon: '⚡', mineralCost: 600, gasCost: 500 },
+  { id: 'minigun', name: 'Minigun', icon: '/characters/marine/weapons/minigun.png', mineralCost: 200, gasCost: 100 },
+  { id: 'rocket_launcher', name: 'Rocket Launcher', icon: '/characters/marine/weapons/rocket-launcher.png', mineralCost: 350, gasCost: 200 },
+  { id: 'plasma_cannon', name: 'Plasma Cannon', icon: '/characters/marine/weapons/plasma-cannon.png', mineralCost: 500, gasCost: 350 },
 ]
 
 const lockedWeapons = computed(() =>
@@ -136,6 +137,12 @@ const lockedWeapons = computed(() =>
   font-size: 1.5rem;
   min-width: 36px;
   text-align: center;
+}
+
+.shop-item__icon--img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 .shop-item__name {

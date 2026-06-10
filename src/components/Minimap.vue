@@ -1,13 +1,17 @@
 
 <template>
-  <div class="minimap-container">
+  <div class="minimap-container" :class="{ 'minimap--terran': isTerran }">
     <canvas ref="canvas" :width="size" :height="size"></canvas>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useGameStore } from '../stores/gameStore';
 import { GameEngine } from '../engine/GameEngine';
+
+const gameStore = useGameStore();
+const isTerran = computed(() => gameStore.race === 'HUMANS');
 
 const size = 150;
 const canvas = ref<HTMLCanvasElement | null>(null);

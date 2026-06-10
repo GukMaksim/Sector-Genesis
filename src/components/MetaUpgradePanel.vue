@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
       <div class="overlay-header">
         <div class="panel-kicker">TERRAN ARMORY</div>
         <h2 class="overlay-title">Meta-Upgrades</h2>
@@ -14,7 +14,7 @@
       </div>
 
       <div class="meta-list">
-        <div v-for="meta in metaDefs" :key="meta.id" class="meta-item">
+        <div v-for="meta in metaDefs" :key="meta.id" class="meta-item" :class="{ 'meta-item--terran': isTerran }">
           <div class="meta-item__info">
             <div class="meta-item__name">{{ meta.name }}</div>
             <div class="meta-item__desc">{{ meta.description }}</div>
@@ -26,7 +26,7 @@
             <span v-if="metaManager.getLevel(meta.id) >= meta.maxLevel" class="meta-maxed">MAXED</span>
             <button
               v-else
-              class="meta-buy-btn"
+              class="meta-buy-btn" :class="{ 'meta-buy-btn--terran': isTerran }"
               :disabled="metaManager.getCredits() < metaManager.getCost(meta.id)"
               @click="purchase(meta.id)"
             >
@@ -37,7 +37,7 @@
       </div>
 
       <div class="tree-footer">
-        <button class="cta-button cta-button--secondary" @click="$emit('close')">
+        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('close')">
           Back
         </button>
       </div>
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useGameStore } from '../stores/gameStore'
 import { metaManager } from '../upgrades/meta/MetaUpgradeManager'
 
 defineProps<{
@@ -56,6 +57,9 @@ defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+const gameStore = useGameStore()
+const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const metaDefs = computed(() => metaManager.getAllDefs())
 
