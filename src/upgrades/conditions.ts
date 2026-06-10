@@ -5,6 +5,7 @@ export interface UpgradeContext {
   level: number
   activeUpgrades: Map<string, UpgradeInstance>
   specializationId: string | null
+  ownedWeapons: string[]
 }
 
 export function pickRarity(): Rarity {
@@ -65,6 +66,14 @@ export function filterAvailableUpgrades(
     if (isAtMaxLevel(u, context)) return false
     if (!meetsPrerequisites(u, context)) return false
     if (hasConflicts(u, context)) return false
+
+    // Skip weapon-specific upgrades if the player doesn't own that weapon
+    for (const effect of u.effects) {
+      if (effect.type === 'weapon_mod' && !context.ownedWeapons.includes(effect.weaponId)) {
+        return false
+      }
+    }
+
     return true
   })
 }

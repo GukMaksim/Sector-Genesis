@@ -39,57 +39,67 @@ const draw = async () => {
   const centerX = size / 2;
   const centerY = size / 2;
 
-  // Draw Discovered Tiles (Background)
+  // Draw Background Tiles
   const gridSize = 256;
-  engine.background?.tiles.forEach((tileData) => {
-    if (!tileData.discovered) return;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, size, size);
 
-    // Tile world position relative to player
-    // tileData.container.x is absolute position in terrainLayer
+  engine.background?.tiles.forEach((tileData) => {
     const dx = (tileData.container.x - engine.player!.container.x) * worldScale;
     const dy = (tileData.container.y - engine.player!.container.y) * worldScale;
 
     if (Math.abs(dx) < size / 2 + (gridSize * worldScale) && Math.abs(dy) < size / 2 + (gridSize * worldScale)) {
-      ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
+      ctx.fillStyle = 'rgba(40, 45, 35, 0.6)';
       ctx.fillRect(centerX + dx, centerY + dy, gridSize * worldScale, gridSize * worldScale);
     }
   });
 
-  // Draw Resource Nodes (Only if near discovered tile or in vision)
+  // Draw Obstacles
+  engine.obstacles.forEach(obs => {
+    if (obs.isDestroyed) return;
+    const dx = (obs.container.x - engine.player!.container.x) * worldScale;
+    const dy = (obs.container.y - engine.player!.container.y) * worldScale;
+
+    if (Math.abs(dx) < size / 2 && Math.abs(dy) < size / 2) {
+      const s = Math.max(2, obs.radius * worldScale);
+      if (obs.obstacleType === 'trees') {
+        ctx.fillStyle = '#2a5a2a';
+      } else if (obs.obstacleType === 'water') {
+        ctx.fillStyle = '#1a4a6a';
+      } else if (obs.obstacleType === 'building') {
+        ctx.fillStyle = '#666677';
+      } else {
+        ctx.fillStyle = '#555555';
+      }
+      ctx.fillRect(centerX + dx - s / 2, centerY + dy - s / 2, s, s);
+    }
+  });
+
+  // Draw Resource Nodes
   engine.resourceNodes.forEach(node => {
     if (node.isDestroyed) return;
     const dx = (node.container.x - engine.player!.container.x) * worldScale;
     const dy = (node.container.y - engine.player!.container.y) * worldScale;
     
     if (Math.abs(dx) < size / 2 && Math.abs(dy) < size / 2) {
-      // Check if node is in discovered area
-      const isDiscovered = engine.background?.isAreaDiscovered(node.container.x, node.container.y);
-      
-      if (isDiscovered) {
-        ctx.fillStyle = node.nodeType === 'mineral' ? '#00f2ff' : '#00ff00';
-        ctx.beginPath();
-        ctx.arc(centerX + dx, centerY + dy, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.fillStyle = node.nodeType === 'mineral' ? '#00f2ff' : '#00ff00';
+      ctx.beginPath();
+      ctx.arc(centerX + dx, centerY + dy, 2, 0, Math.PI * 2);
+      ctx.fill();
     }
   });
 
-  // Draw Enemies (Visible if on discovered tile)
+  // Draw Enemies
   engine.enemies.forEach(enemy => {
     if (enemy.isDestroyed) return;
     const dx = (enemy.container.x - engine.player!.container.x) * worldScale;
     const dy = (enemy.container.y - engine.player!.container.y) * worldScale;
     
     if (Math.abs(dx) < size / 2 && Math.abs(dy) < size / 2) {
-      // Check if enemy is in discovered area
-      const isDiscovered = engine.background?.isAreaDiscovered(enemy.container.x, enemy.container.y);
-      
-      if (isDiscovered) {
-        ctx.fillStyle = enemy.isBoss ? '#ff00ff' : '#ff0000';
-        ctx.beginPath();
-        ctx.arc(centerX + dx, centerY + dy, enemy.isBoss ? 3 : 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.fillStyle = enemy.isBoss ? '#ff00ff' : '#ff0000';
+      ctx.beginPath();
+      ctx.arc(centerX + dx, centerY + dy, enemy.isBoss ? 3 : 1.5, 0, Math.PI * 2);
+      ctx.fill();
     }
   });
 

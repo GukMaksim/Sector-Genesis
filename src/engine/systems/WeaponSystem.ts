@@ -123,7 +123,7 @@ export class GaussRifle extends BaseWeapon {
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
         const stats = this.upgradeStore.statMultipliers;
-        const cooldown = 500 / (stats.fireRateMult * (this.level * 0.22 + 0.85));
+        const cooldown = 500 / (stats.fireRateMult * (this.level * 0.22 + 0.85) * this.getWeaponModMult('fireRate'));
         const now = Date.now();
         if (now - this.lastFireTime <= cooldown) return [];
         const target = this.getNearestEnemy(x, y, enemies);
@@ -217,13 +217,14 @@ export class RocketLauncher extends BaseWeapon {
         // Muzzle flash
         VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0xff8c42);
 
+        const splashRadius = (80 + this.level * 12) * this.getWeaponModMult('splashRadius');
         const projectile = new Projectile(x, y, direction, {
             speed: this.getProjectileSpeed(8),
             damage: this.getDamage(32 * (1 + this.level * 0.18)),
             size: this.getProjectileScale() * 1.3,
             color: 0xff8c42,
             lifeTime: 2500,
-            splashRadius: 80 + this.level * 12,
+            splashRadius,
         });
         stage.addChild(projectile.container);
         return [projectile];
@@ -248,6 +249,7 @@ export class PlasmaCannon extends BaseWeapon {
         // Muzzle flash
         VisualEffects.muzzleFlash(x, y, Math.atan2(direction.y, direction.x), 0x67f8ff);
 
+        const splashRadius = (120 + this.level * 20) * this.getWeaponModMult('splashRadius');
         const projectile = new Projectile(x, y, direction, {
             speed: this.getProjectileSpeed(10),
             damage: this.getDamage(38 * (1 + this.level * 0.22)),
@@ -256,6 +258,7 @@ export class PlasmaCannon extends BaseWeapon {
             lifeTime: 2200,
             pierce: true, // flies through all enemies in its path
             shape: 'circle',
+            splashRadius,
         });
         stage.addChild(projectile.container);
         return [projectile];
@@ -268,7 +271,8 @@ export class OrbitalLaser extends BaseWeapon {
     public id: WeaponId = 'orbital_laser';
 
     public update(_x: number, _y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[] {
-        const cooldown = 3000 / (1 + this.level * 0.2);
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 3000 / (stats.fireRateMult * (1 + this.level * 0.2));
         const now = Date.now();
         if (now - this.lastFireTime <= cooldown) return [];
         this.lastFireTime = now;
@@ -281,11 +285,11 @@ export class OrbitalLaser extends BaseWeapon {
         );
         const target = visibleEnemies[Math.floor(Math.random() * visibleEnemies.length)];
         if (!target) return [];
-        this.strike(target.container.x, target.container.y, stage, enemies, onEnemyKilled);
+        this.strike(target.container.x, target.container.y, stats, stage, enemies, onEnemyKilled);
         return [];
     }
 
-    private strike(tx: number, ty: number, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: EnemyKilledCallback) {
+    private strike(tx: number, ty: number, stats: any, stage: PIXI.Container, enemies: Enemy[], onEnemyKilled?: EnemyKilledCallback) {
         // Visual warning flash
         VisualEffects.explosionEffect(tx, ty, 60, 0x00f2ff);
 
@@ -297,7 +301,8 @@ export class OrbitalLaser extends BaseWeapon {
         laser.y = ty;
         stage.addChild(laser);
 
-        const radius = 80 + this.level * 15;
+        const dmg = this.getDamage(100 * (1 + this.level * 0.5));
+        const radius = (80 + this.level * 15) * (1 + stats.projectileSizeMult);
         for (const enemy of enemies) {
             if (enemy.isDestroyed) continue;
             const dx = enemy.container.x - tx;
@@ -306,7 +311,7 @@ export class OrbitalLaser extends BaseWeapon {
             if (dist < radius) {
                 const ex = enemy.container.x;
                 const ey = enemy.container.y;
-                enemy.takeDamage(100 * (1 + this.level * 0.5));
+                enemy.takeDamage(dmg);
                 if (enemy.isDestroyed && onEnemyKilled) {
                     onEnemyKilled(enemy, ex, ey);
                 }

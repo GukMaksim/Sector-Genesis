@@ -42,6 +42,12 @@
           </div>
         </button>
       </div>
+
+      <div class="upgrade-armory-row" v-if="gameStore.minerals > 0 || gameStore.gas > 0">
+        <button class="armory-btn" :class="{ 'armory-btn--terran': isTerran }" @click="$emit('openShop')">
+          ⚙ ARMORY (Re-roll / Extra Choice)
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -61,6 +67,7 @@ const props = defineProps<{
 defineEmits<{
   pick: [id: string]
   skip: []
+  openShop: []
 }>()
 
 const gameStore = useGameStore()
@@ -114,3 +121,42 @@ const effectDescriptions = (upgrade: UpgradeDef) => {
   return descs
 }
 </script>
+
+<style scoped>
+.upgrade-armory-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.armory-btn {
+  padding: 8px 20px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  color: #ffd700;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.armory-btn:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: #ffd700;
+}
+
+.armory-btn--terran {
+  background: rgba(0, 242, 255, 0.1);
+  border-color: rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+}
+
+.armory-btn--terran:hover {
+  background: rgba(0, 242, 255, 0.2);
+  border-color: #00f2ff;
+}
+</style>

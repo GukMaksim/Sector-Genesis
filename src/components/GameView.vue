@@ -47,6 +47,10 @@
       @extra-choice="handleExtraChoice"
       @heal="handleShopHeal"
       @unlock-weapon="handleShopWeaponUnlock"
+      @dmg-boost="handleDmgBoost"
+      @fire-rate-boost="handleFireRateBoost"
+      @armor-boost="handleArmorBoost"
+      @full-heal="handleFullHeal"
     />
 
     <Transition name="evo-fade">
@@ -177,6 +181,7 @@ const evolutionName = ref('');
 const evolutionDesc = ref('');
 const creditsEarned = ref(0);
 const showLevelUpFlash = ref(false);
+const shopFromUpgrade = ref(false);
 
 const isTerran = computed(() => gameStore.race === 'HUMANS');
 const clampedXpPercentage = computed(() => Math.min(100, Math.max(0, gameStore.xpPercentage)));
@@ -227,6 +232,8 @@ watch(() => gameStore.isGameOver, (over) => {
   if (over) {
     creditsEarned.value = Math.max(1, Math.floor(gameStore.kills * 0.5 + gameStore.level * 5 + gameStore.time * 0.1));
     metaManager.addCredits(creditsEarned.value);
+    clearAllBoosts();
+    showShop.value = false;
   }
 });
 
@@ -256,14 +263,27 @@ const refreshChoices = () => {
 
 // --- Shop handling ---
 const openShop = () => {
-  if (showUpgradeChoice.value) return;
+  if (gameStore.isGameOver) return;
+  if (showUpgradeChoice.value) {
+    shopFromUpgrade.value = true;
+    showUpgradeChoice.value = false;
+  }
   showShop.value = true;
   gameStore.isPaused = true;
 };
 
 const closeShop = () => {
   showShop.value = false;
-  gameStore.isPaused = false;
+  if (gameStore.isGameOver) {
+    shopFromUpgrade.value = false;
+    return;
+  }
+  if (shopFromUpgrade.value) {
+    shopFromUpgrade.value = false;
+    showUpgradeChoice.value = true;
+  } else {
+    gameStore.isPaused = false;
+  }
 };
 
 const handleReroll = () => {
@@ -291,6 +311,48 @@ const handleShopHeal = () => {
 
 const handleShopWeaponUnlock = (id: WeaponId) => {
   gameStore.unlockWeapon(id);
+};
+
+// --- Temporary shop boosts ---
+const boostTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+const clearAllBoosts = () => {
+  for (const t of boostTimeouts) clearTimeout(t);
+  boostTimeouts.length = 0;
+};
+
+const applyTempBoost = (key: keyof typeof upgradeStore.statMultipliers, value: number, durationMs: number) => {
+  (upgradeStore.statMultipliers as Record<string, number>)[key] += value;
+  const timeout = setTimeout(() => {
+    (upgradeStore.statMultipliers as Record<string, number>)[key] -= value;
+    const idx = boostTimeouts.indexOf(timeout);
+    if (idx !== -1) boostTimeouts.splice(idx, 1);
+  }, durationMs);
+  boostTimeouts.push(timeout);
+};
+
+const handleDmgBoost = () => {
+  if (gameStore.minerals < 100) return;
+  gameStore.minerals -= 100;
+  applyTempBoost('damageMult', 0.15, 30000);
+};
+
+const handleFireRateBoost = () => {
+  if (gameStore.gas < 80) return;
+  gameStore.gas -= 80;
+  applyTempBoost('fireRateMult', 0.25, 30000);
+};
+
+const handleArmorBoost = () => {
+  if (gameStore.minerals < 120) return;
+  gameStore.minerals -= 120;
+  applyTempBoost('armor', 5, 30000);
+};
+
+const handleFullHeal = () => {
+  if (gameStore.minerals < 150) return;
+  gameStore.minerals -= 150;
+  gameStore.heal(9999); // Full heal
 };
 
 // --- Specialization ---

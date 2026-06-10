@@ -4,11 +4,11 @@ import { Entity } from './Entity';
 export type ObstacleType = 'building' | 'wall' | 'water' | 'trees' | 'rocks';
 
 const OBSTACLE_CONFIG: Record<ObstacleType, { radius: number; slowFactor: number }> = {
-    building: { radius: 45, slowFactor: 0.3 },
-    wall:     { radius: 22, slowFactor: 0.35 },
-    water:    { radius: 40, slowFactor: 0.5 },
-    trees:    { radius: 28, slowFactor: 0.4 },
-    rocks:    { radius: 20, slowFactor: 0.45 },
+    building: { radius: 90, slowFactor: 0.3 },
+    wall:     { radius: 90, slowFactor: 0.35 },
+    water:    { radius: 60, slowFactor: 0.5 },
+    trees:    { radius: 110, slowFactor: 0.4 },
+    rocks:    { radius: 50, slowFactor: 0.45 },
 };
 
 const TEXTURE_PATH: Record<ObstacleType, string> = {

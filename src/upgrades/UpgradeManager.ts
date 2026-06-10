@@ -28,6 +28,7 @@ export class UpgradeManager {
       level: gameStore.level,
       activeUpgrades: this.upgradeStore.upgradeMap,
       specializationId: this.upgradeStore.specializationId,
+      ownedWeapons: gameStore.unlockedWeapons,
     }
   }
 
@@ -92,7 +93,7 @@ export class UpgradeManager {
     }
   }
 
-  private rebuildStats(): void {
+  rebuildStats(): void {
     const stats: ComputedStats = { ...DEFAULT_COMPUTED_STATS }
 
     const metaStats = metaManager.applyMetaStats(stats)

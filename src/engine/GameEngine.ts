@@ -118,6 +118,9 @@ export class GameEngine {
             this.gameStore.unlockWeapon(wid as any)
         }
 
+        // Apply meta-upgrade stat bonuses so they take effect from the start
+        this.upgradeManager.rebuildStats();
+
         this.indicatorSystem = new IndicatorSystem(this.app.stage, this.player.container);
 
         this.spawnInitialResourceNodes();
@@ -191,10 +194,7 @@ export class GameEngine {
         }
 
         if (this.background) {
-            this.background.update(
-                { x: playerVelX, y: playerVelY },
-                this.gameStore.baseStats.discoveryRadius
-            );
+            this.background.update({ x: playerVelX, y: playerVelY });
         }
 
         const newEnemies = this.spawner?.update(this.player.container) || [];
@@ -245,9 +245,7 @@ export class GameEngine {
             }
             gem.container.x -= playerVelX;
             gem.container.y -= playerVelY;
-            if (this.background) {
-                gem.container.visible = this.background.isAreaDiscovered(gem.container.x, gem.container.y);
-            }
+            gem.container.visible = true;
             return true;
         });
 
@@ -260,9 +258,7 @@ export class GameEngine {
             node.container.x -= playerVelX;
             node.container.y -= playerVelY;
             node.updateWithPlayer(delta, this.player!.container, this.app.ticker.deltaMS);
-            if (this.background) {
-                node.container.visible = this.background.isAreaDiscovered(node.container.x, node.container.y);
-            }
+            node.container.visible = true;
             const dx = node.container.x - this.player!.container.x;
             const dy = node.container.y - this.player!.container.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -317,6 +313,7 @@ export class GameEngine {
             const dy = obs.container.y - this.player!.container.y;
             // Cull far obstacles
             if (Math.sqrt(dx * dx + dy * dy) > 3500) { obs.destroy(); return false; }
+            obs.container.visible = true;
             return true;
         });
 
@@ -362,9 +359,7 @@ export class GameEngine {
 
             enemy.lastX = enemy.container.x;
             enemy.lastY = enemy.container.y;
-            if (this.background) {
-                enemy.container.visible = this.background.isAreaDiscovered(enemy.container.x, enemy.container.y);
-            }
+            enemy.container.visible = true;
 
             for (const p of this.projectiles) {
                 if (p.isDestroyed) continue;

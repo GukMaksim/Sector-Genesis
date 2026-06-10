@@ -49,27 +49,25 @@
           </button>
         </template>
 
-        <template v-if="upgradeStore.activeUpgrades.length > 0">
-          <div class="shop-section-label">TEMPORARY BOOSTS</div>
+        <div class="shop-section-label">TEMPORARY BOOSTS</div>
 
-          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < dmgBoostCost" @click="$emit('dmgBoost')">
-            <span class="shop-item__icon">⚔️</span>
-            <span class="shop-item__name">Damage Boost (+15% for 30s)</span>
-            <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ dmgBoostCost }}</span>
-          </button>
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < dmgBoostCost" @click="$emit('dmgBoost')">
+          <span class="shop-item__icon">⚔️</span>
+          <span class="shop-item__name">Damage Boost (+15% for 30s)</span>
+          <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ dmgBoostCost }}</span>
+        </button>
 
-          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < fireRateCost" @click="$emit('fireRateBoost')">
-            <span class="shop-item__icon">⚡</span>
-            <span class="shop-item__name">Fire Rate Overdrive (+25% for 30s)</span>
-            <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ fireRateCost }}</span>
-          </button>
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < fireRateCost" @click="$emit('fireRateBoost')">
+          <span class="shop-item__icon">⚡</span>
+          <span class="shop-item__name">Fire Rate Overdrive (+25% for 30s)</span>
+          <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ fireRateCost }}</span>
+        </button>
 
-          <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < armorBoostCost" @click="$emit('armorBoost')">
-            <span class="shop-item__icon">🛡️</span>
-            <span class="shop-item__name">Reinforced Armor (+5 for 30s)</span>
-            <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ armorBoostCost }}</span>
-          </button>
-        </template>
+        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < armorBoostCost" @click="$emit('armorBoost')">
+          <span class="shop-item__icon">🛡️</span>
+          <span class="shop-item__name">Reinforced Armor (+5 for 30s)</span>
+          <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ armorBoostCost }}</span>
+        </button>
 
         <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < fullHealCost" @click="$emit('fullHeal')">
           <span class="shop-item__icon">💊</span>
@@ -90,7 +88,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import { useUpgradeStore } from '../stores/upgradeStore'
 import type { WeaponId } from '../types/game'
 
 defineEmits<{
@@ -110,7 +107,6 @@ defineProps<{
 }>()
 
 const gameStore = useGameStore()
-const upgradeStore = useUpgradeStore()
 const isTerran = computed(() => gameStore.race === 'HUMANS')
 
 const rerollCost = 50

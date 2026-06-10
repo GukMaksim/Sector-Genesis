@@ -162,6 +162,7 @@ export interface UpgradeContext {
   level: number
   activeUpgrades: Map<string, UpgradeInstance>
   specializationId: string | null
+  ownedWeapons: string[]
 }
 
 export const RARITY_COLORS: Record<Rarity, string> = {
