@@ -1691,6 +1691,12 @@ body::after {
   color: var(--bioform-green) !important;
 }
 
+/* Bioform Shop Item */
+.shop-item--bioform:hover:not(:disabled) {
+  background: rgba(0, 255, 65, 0.06) !important;
+  border-color: rgba(0, 255, 65, 0.35) !important;
+}
+
 /* Bioform Loading Card */
 .loading-card--bioform {
   border-color: rgba(0, 255, 65, 0.22) !important;
