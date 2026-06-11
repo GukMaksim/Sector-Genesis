@@ -1,65 +1,65 @@
-import type { RaceConfig, RaceType } from '../types/game';
+import type { RaceConfig } from '../types/game';
 
-export const HUMAN_CONFIG: RaceConfig & { type: RaceType } = {
-    type: 'HUMANS',
+export const BIOFORM_CONFIG: RaceConfig = {
+    type: 'BIOFORMS',
     stages: [
         {
             level: 1,
-            name: 'Marine Recruit',
-            weaponType: 'RIFLE',
+            name: 'Zerg Larva',
+            weaponType: 'CLAW',
             statModifiers: {
                 damage: 1,
                 fireRate: 1,
                 speed: 1,
-                health: 100,
+                health: 120,
                 projectileCount: 1
             }
         },
         {
             level: 5,
-            name: 'Marine Veteran',
-            weaponType: 'RIFLE',
+            name: 'Zergling',
+            weaponType: 'CLAW',
             statModifiers: {
                 damage: 1,
                 fireRate: 1,
                 speed: 1,
-                health: 100,
+                health: 120,
                 projectileCount: 1
             }
         },
         {
             level: 10,
-            name: 'Heavy Trooper',
-            weaponType: 'DUAL_RIFLES',
+            name: 'Hydralisk',
+            weaponType: 'CLAW',
             statModifiers: {
                 damage: 1,
                 fireRate: 1,
                 speed: 1,
-                health: 100,
+                health: 120,
                 projectileCount: 1
             }
         },
         {
             level: 15,
-            name: 'Siege Commander',
-            weaponType: 'EXPLOSIVE_RIFLE',
+            name: 'Ultralisk',
+            weaponType: 'CLAW',
             statModifiers: {
                 damage: 1,
                 fireRate: 1,
                 speed: 1,
-                health: 100,
+                health: 120,
                 projectileCount: 1
             }
         },
         {
             level: 20,
-            name: 'Dominion General',
-            weaponType: 'PLASMA_CANNON',
+            name: 'Brood Lord',
+            weaponType: 'CLAW',
             statModifiers: {
                 damage: 1,
                 fireRate: 1,
                 speed: 1,
-                health: 100,
+                health: 120,
                 projectileCount: 1
             }
         }

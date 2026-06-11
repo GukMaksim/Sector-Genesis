@@ -8,6 +8,7 @@ export abstract class Enemy extends Entity {
     public abstract xpValue: number;
     public isBoss: boolean = false;
     public isFlying: boolean = false;
+    public isRanged: boolean = false;
     public lastX: number;
     public lastY: number;
 
@@ -24,6 +25,11 @@ export abstract class Enemy extends Entity {
     public update() {}
 
     public abstract updateWithPlayer(delta: number, playerPos: { x: number, y: number }): void;
+
+    /** Optional: fire a projectile at the player (used by ranged enemies) */
+    public fireAtPlayer(_playerPos: { x: number, y: number }): import('./Projectile').Projectile | null {
+        return null;
+    }
 
     public takeDamage(amount: number) {
         this.health -= amount;

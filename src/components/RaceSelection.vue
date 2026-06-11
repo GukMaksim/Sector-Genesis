@@ -44,8 +44,7 @@ const races: Array<{
     subtitle: 'Nexus Organica',
     description: 'Evolution unshackled. Bioforms adapt, consume, and regenerate. Every encounter makes them stronger as they assimilate genetic material from fallen foes.',
     accent: '#00ff41',
-    locked: true,
-    lockHint: 'Coming soon — Genetic template undergoing final maturation',
+    locked: false,
   },
 ]
 

@@ -58,7 +58,7 @@ export class Player extends Entity {
         const texturePath = this.getTextureForStage(this.gameStore.currentStageIndex);
         const texture = PIXI.Assets.get(texturePath);
         if (!texture) {
-            console.error(`Marine texture not found at ${texturePath}!`);
+            console.error(`Player texture not found at ${texturePath}!`);
             return;
         }
 
@@ -87,6 +87,14 @@ export class Player extends Entity {
     }
 
     private getTextureForStage(stageIndex: number): string {
+        if (this.gameStore.race === 'BIOFORMS') {
+            switch (stageIndex) {
+                case 2:
+                case 3: return '/characters/monsters/monster2.png';
+                case 4: return '/characters/monsters/monster2.png';
+                default: return '/characters/monsters/monster1.png';
+            }
+        }
         switch (stageIndex) {
             case 1: return '/characters/marine/marine-veteran.png';
             case 2: return '/characters/marine/heavy-trooper.png';

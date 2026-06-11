@@ -1537,6 +1537,199 @@ body::after {
 }
 
 /* ============================================
+   BIOFORM THEME (Race: BIOFORMS)
+   ============================================ */
+:root {
+  --bioform-green: #00ff41;
+  --bioform-lime: #82ff00;
+  --bioform-teal: #00cc66;
+  --bioform-dark: #08140c;
+  --bioform-panel-bg: rgba(10, 22, 14, 0.88);
+  --bioform-panel-border: rgba(0, 255, 65, 0.2);
+  --bioform-text: rgba(190, 255, 210, 0.92);
+  --bioform-text-muted: rgba(140, 200, 160, 0.7);
+  --bioform-glow: rgba(0, 255, 65, 0.12);
+}
+
+.panel--bioform {
+  background: linear-gradient(180deg, rgba(10, 22, 14, 0.92), rgba(6, 16, 10, 0.94)) !important;
+  border-color: var(--bioform-panel-border) !important;
+  border-top: 2px solid rgba(0, 255, 65, 0.3) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 255, 65, 0.06) !important;
+}
+
+.panel--bioform::before {
+  background: linear-gradient(135deg, rgba(0, 255, 65, 0.04), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.03)) !important;
+}
+
+.panel--bioform .panel-kicker {
+  color: var(--bioform-green) !important;
+  letter-spacing: 0.3em;
+}
+
+.panel--bioform:hover {
+  box-shadow: 0 4px 24px rgba(0, 255, 65, 0.08), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Bioform Result Card */
+.result-card--bioform {
+  background: rgba(10, 22, 14, 0.92) !important;
+  border-color: rgba(0, 255, 65, 0.12) !important;
+}
+
+.result-card--bioform .panel-kicker {
+  color: var(--bioform-green) !important;
+}
+
+/* Bioform HUD Core */
+.hud-core--bioform .hud-core__value {
+  color: var(--bioform-green) !important;
+}
+
+.hud-core--bioform .mini-stat__label {
+  color: rgba(0, 255, 65, 0.7) !important;
+}
+
+/* Bioform Overlay Shell */
+.overlay-shell--bioform {
+  background: linear-gradient(180deg, rgba(10, 22, 14, 0.96), rgba(6, 12, 8, 0.92)) !important;
+  border-color: rgba(0, 255, 65, 0.2) !important;
+  border-top: 2px solid rgba(0, 255, 65, 0.3) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(0, 255, 65, 0.05) !important;
+}
+
+/* Bioform Progress Bar (XP) */
+.progress-fill--xp--bioform {
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.5), rgba(0, 255, 65, 1)) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 65, 0.3) !important;
+}
+
+/* Bioform Hud Value Text */
+.hud-core__value--bioform {
+  color: var(--bioform-green) !important;
+}
+
+/* Bioform Pill Variants */
+.pill--bioform {
+  border-color: rgba(0, 255, 65, 0.2) !important;
+  background: rgba(0, 255, 65, 0.06) !important;
+}
+
+.pill--cta--bioform {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  border-color: rgba(0, 255, 65, 0.35) !important;
+  background: rgba(0, 255, 65, 0.08) !important;
+  color: var(--bioform-green) !important;
+}
+
+.pill--cta--bioform:hover {
+  background: rgba(0, 255, 65, 0.18) !important;
+  border-color: rgba(0, 255, 65, 0.55) !important;
+}
+
+/* Bioform Mini Stat Value */
+.mini-stat__value--bioform {
+  color: rgba(190, 255, 210, 0.96) !important;
+}
+
+/* Bioform Game Over Overlay */
+.overlay--gameover--bioform {
+  background: radial-gradient(circle at center, rgba(8, 24, 12, 0.62), rgba(4, 12, 6, 0.94)) !important;
+}
+
+/* Bioform Level-up Card */
+.levelup-card--bioform {
+  border-color: #00ff41 !important;
+  background: linear-gradient(135deg, #0a1a0a, #0a1a0a) !important;
+}
+
+.levelup-card--bioform .levelup-title {
+  color: #00ff41 !important;
+  text-shadow: 0 0 30px rgba(0, 255, 65, 0.5) !important;
+}
+
+@keyframes pulse-glow-bioform {
+  from { box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); }
+  to { box-shadow: 0 0 40px rgba(0, 255, 65, 0.4); }
+}
+
+/* Bioform CTA Buttons */
+.cta-button--bioform {
+  border-color: rgba(0, 255, 65, 0.4) !important;
+  background: linear-gradient(180deg, rgba(0, 255, 65, 0.85), rgba(0, 180, 45, 0.92)) !important;
+  color: rgba(10, 18, 12, 0.98) !important;
+  box-shadow: 0 10px 24px rgba(0, 255, 65, 0.15) !important;
+}
+
+.cta-button--bioform:hover,
+.cta-button--bioform:focus-visible {
+  box-shadow: 0 16px 30px rgba(0, 255, 65, 0.25) !important;
+  filter: brightness(1.08) !important;
+}
+
+.cta-button--bioform-secondary {
+  border-color: rgba(0, 255, 65, 0.25) !important;
+  background: linear-gradient(180deg, rgba(10, 22, 14, 0.98), rgba(8, 18, 12, 0.96)) !important;
+  color: rgba(0, 255, 65, 0.95) !important;
+  box-shadow: 0 10px 24px rgba(0, 255, 65, 0.05) !important;
+}
+
+.cta-button--bioform-secondary:hover,
+.cta-button--bioform-secondary:focus-visible {
+  box-shadow: 0 16px 30px rgba(0, 255, 65, 0.1) !important;
+  border-color: rgba(0, 255, 65, 0.4) !important;
+}
+
+/* Bioform Spec Card */
+.spec-card--bioform:hover:not(:disabled) {
+  border-color: rgba(0, 255, 65, 0.4) !important;
+  background: rgba(0, 255, 65, 0.06) !important;
+}
+
+.spec-card__node-level--bioform {
+  color: var(--bioform-green) !important;
+}
+
+/* Bioform Loading Card */
+.loading-card--bioform {
+  border-color: rgba(0, 255, 65, 0.22) !important;
+  background: linear-gradient(180deg, rgba(10, 22, 14, 0.94), rgba(6, 12, 8, 0.88)) !important;
+}
+
+.loading-card--bioform .panel-kicker {
+  color: var(--bioform-green) !important;
+}
+
+.loading-orb--bioform {
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.92), rgba(0, 255, 65, 0.55) 28%, rgba(0, 255, 65, 0.1) 55%, transparent 68%) !important;
+  box-shadow:
+    0 0 18px rgba(0, 255, 65, 0.3),
+    0 0 42px rgba(0, 255, 65, 0.1) !important;
+}
+
+.loading-orb--bioform::after {
+  border-color: rgba(0, 255, 65, 0.18) !important;
+}
+
+.loading-bar--bioform {
+  border-color: rgba(0, 255, 65, 0.18) !important;
+}
+
+.loading-bar__fill--bioform {
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.2), var(--bioform-green), rgba(130, 255, 0, 0.8)) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 65, 0.25) !important;
+}
+
+/* Bioform Stage Meta */
+.stage-meta--bioform .pill--blue {
+  border-color: rgba(0, 255, 65, 0.2) !important;
+  color: var(--bioform-green) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 65, 0.06) !important;
+}
+
+/* ============================================
    RESPONSIVE TERRAIN ADJUSTMENTS
    ============================================ */
 @media (max-width: 760px) {

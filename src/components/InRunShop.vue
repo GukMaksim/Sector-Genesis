@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran, 'overlay-shell--bioform': isBioform }">
       <div class="overlay-header">
         <div class="panel-kicker">FIELD ARMORY</div>
         <h2 class="overlay-title">Supplies & Requisitions</h2>
@@ -15,19 +15,19 @@
       </div>
 
       <div class="shop-grid">
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < rerollCost" @click="$emit('reroll')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.minerals < rerollCost" @click="$emit('reroll')">
           <span class="shop-item__icon">🔄</span>
           <span class="shop-item__name">Re-roll Choices</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ rerollCost }}</span>
         </button>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < extraChoiceCost" @click="$emit('extraChoice')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.gas < extraChoiceCost" @click="$emit('extraChoice')">
           <span class="shop-item__icon">➕</span>
           <span class="shop-item__name">Extra Choice</span>
           <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ extraChoiceCost }}</span>
         </button>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < healCost" @click="$emit('heal')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.minerals < healCost" @click="$emit('heal')">
           <span class="shop-item__icon">❤️</span>
           <span class="shop-item__name">Emergency Heal (+40 HP)</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ healCost }}</span>
@@ -35,7 +35,7 @@
 
         <template v-for="weapon in lockedWeapons" :key="weapon.id">
           <button
-            class="shop-item" :class="{ 'shop-item--terran': isTerran }"
+            class="shop-item" :class="shopClass"
             :disabled="gameStore.minerals < weapon.mineralCost || gameStore.gas < weapon.gasCost"
             @click="$emit('unlockWeapon', weapon.id)"
           >
@@ -51,25 +51,25 @@
 
         <div class="shop-section-label">TEMPORARY BOOSTS</div>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < dmgBoostCost" @click="$emit('dmgBoost')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.minerals < dmgBoostCost" @click="$emit('dmgBoost')">
           <span class="shop-item__icon">⚔️</span>
           <span class="shop-item__name">Damage Boost (+15% for 30s)</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ dmgBoostCost }}</span>
         </button>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.gas < fireRateCost" @click="$emit('fireRateBoost')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.gas < fireRateCost" @click="$emit('fireRateBoost')">
           <span class="shop-item__icon">⚡</span>
           <span class="shop-item__name">Fire Rate Overdrive (+25% for 30s)</span>
           <span class="shop-item__cost pill pill--gas"><img src="/ui/gas.jpg" class="res-icon" /> {{ fireRateCost }}</span>
         </button>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < armorBoostCost" @click="$emit('armorBoost')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.minerals < armorBoostCost" @click="$emit('armorBoost')">
           <span class="shop-item__icon">🛡️</span>
           <span class="shop-item__name">Reinforced Armor (+5 for 30s)</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ armorBoostCost }}</span>
         </button>
 
-        <button class="shop-item" :class="{ 'shop-item--terran': isTerran }" :disabled="gameStore.minerals < fullHealCost" @click="$emit('fullHeal')">
+        <button class="shop-item" :class="shopClass" :disabled="gameStore.minerals < fullHealCost" @click="$emit('fullHeal')">
           <span class="shop-item__icon">💊</span>
           <span class="shop-item__name">Full Medical Kit (Full Heal)</span>
           <span class="shop-item__cost pill pill--mineral"><img src="/ui/mineral.jpg" class="res-icon" /> {{ fullHealCost }}</span>
@@ -77,7 +77,7 @@
       </div>
 
       <div class="tree-footer">
-        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('close')">
+        <button class="cta-button" :class="isBioform ? 'cta-button--bioform-secondary' : (isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary')" @click="$emit('close')">
           Close Armory
         </button>
       </div>
@@ -108,6 +108,12 @@ defineProps<{
 
 const gameStore = useGameStore()
 const isTerran = computed(() => gameStore.race === 'HUMANS')
+const isBioform = computed(() => gameStore.race === 'BIOFORMS')
+const shopClass = computed(() => {
+  if (isTerran.value) return { 'shop-item--terran': true }
+  if (isBioform.value) return { 'shop-item--bioform': true }
+  return {}
+})
 
 const rerollCost = 50
 const extraChoiceCost = 30

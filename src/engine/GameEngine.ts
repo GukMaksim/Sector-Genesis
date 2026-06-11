@@ -32,10 +32,12 @@ export class GameEngine {
     private obstaclesContainer: PIXI.Container;
     private enemiesContainer: PIXI.Container;
     private projectilesContainer: PIXI.Container;
+    private enemyProjectilesContainer: PIXI.Container;
     private effectsContainer: PIXI.Container;
 
     public enemies: Enemy[] = [];
     public projectiles: Projectile[] = [];
+    public enemyProjectiles: Projectile[] = [];
     public xpGems: XpGem[] = [];
     public resourceNodes: ResourceNode[] = [];
     public obstacles: Obstacle[] = [];
@@ -57,6 +59,7 @@ export class GameEngine {
         this.obstaclesContainer = new PIXI.Container();
         this.enemiesContainer = new PIXI.Container();
         this.projectilesContainer = new PIXI.Container();
+        this.enemyProjectilesContainer = new PIXI.Container();
         this.effectsContainer = new PIXI.Container();
 
         (window as any).gameEngine = this;
@@ -91,6 +94,11 @@ export class GameEngine {
         VisualEffects.init(this.effectsContainer);
 
         this.spawner = new SpawnerSystem(this.enemiesContainer);
+
+        this.enemyProjectilesContainer = new PIXI.Container();
+        this.app.stage.addChild(this.enemyProjectilesContainer);
+
+        this.gameStore.resetRunState();
 
         await PIXI.Assets.load([
             '/characters/marine/marine-recruit.png',
@@ -212,6 +220,7 @@ export class GameEngine {
         this.projectiles = this.projectiles.filter(p => {
             if (p.isDestroyed) return false;
             p.update(delta);
+            if (p.elapsed >= p.lifeTime) { p.destroy(); return false; }
             const boundsMargin = 40;
             if (p.container.x < -boundsMargin ||
                 p.container.x > window.innerWidth + boundsMargin ||
@@ -229,6 +238,58 @@ export class GameEngine {
                 if (Math.sqrt(dx * dx + dy * dy) < obs.radius + 6) {
                     VisualEffects.impactEffect(p.container.x, p.container.y, 0x666666);
                     p.destroy();
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // ── Enemy projectiles: collide with player and obstacles ──
+        this.enemyProjectiles = this.enemyProjectiles.filter(ep => {
+            if (ep.isDestroyed) return false;
+            ep.update(delta);
+            if (ep.elapsed >= ep.lifeTime) { ep.destroy(); return false; }
+            // Scroll with world
+            ep.container.x -= playerVelX;
+            ep.container.y -= playerVelY;
+            const boundsMargin = 40;
+            if (ep.container.x < -boundsMargin ||
+                ep.container.x > window.innerWidth + boundsMargin ||
+                ep.container.y < -boundsMargin ||
+                ep.container.y > window.innerHeight + boundsMargin) {
+                ep.destroy();
+                return false;
+            }
+
+            for (const obs of this.obstacles) {
+                if (obs.isDestroyed || !obs.blocksProjectiles) continue;
+                const dx = ep.container.x - obs.container.x;
+                const dy = ep.container.y - obs.container.y;
+                if (Math.sqrt(dx * dx + dy * dy) < obs.radius + 6) {
+                    VisualEffects.impactEffect(ep.container.x, ep.container.y, 0xff6b35);
+                    ep.destroy();
+                    return false;
+                }
+            }
+
+            if (this.player) {
+                const pdx = this.player.container.x - ep.container.x;
+                const pdy = this.player.container.y - ep.container.y;
+                if (Math.sqrt(pdx * pdx + pdy * pdy) < 25 + ep.splashRadius) {
+                    if (ep.splashRadius > 0) {
+                        const armor = this.upgradeStore.statMultipliers.armor || 0;
+                        const rawDamage = ep.damage * 0.5;
+                        const actualDamage = Math.max(0.1, rawDamage - armor * 0.05);
+                        this.player.takeDamage(actualDamage);
+                        VisualEffects.explosionEffect(ep.container.x, ep.container.y, ep.splashRadius, 0xff6b35);
+                    } else {
+                        const armor = this.upgradeStore.statMultipliers.armor || 0;
+                        const actualDamage = Math.max(0.1, ep.damage - armor * 0.05);
+                        this.player.takeDamage(actualDamage);
+                        VisualEffects.impactEffect(ep.container.x, ep.container.y, 0xff6b35);
+                    }
+                    ep.destroy();
                     return false;
                 }
             }
@@ -360,6 +421,15 @@ export class GameEngine {
             enemy.lastX = enemy.container.x;
             enemy.lastY = enemy.container.y;
             enemy.container.visible = true;
+
+            // ── Ranged enemy: fire at player ──
+            if (enemy.isRanged) {
+                const proj = enemy.fireAtPlayer(this.player!.container);
+                if (proj) {
+                    this.enemyProjectiles.push(proj);
+                    this.enemyProjectilesContainer.addChild(proj.container);
+                }
+            }
 
             for (const p of this.projectiles) {
                 if (p.isDestroyed) continue;

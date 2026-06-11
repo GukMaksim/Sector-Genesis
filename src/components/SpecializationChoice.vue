@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay overlay--upgrade">
-    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran }">
+    <div class="overlay-shell overlay-shell--choice" :class="{ 'overlay-shell--terran': isTerran, 'overlay-shell--bioform': isBioform }">
       <div class="overlay-header">
         <div class="panel-kicker">SPECIALIZATION AVAILABLE</div>
         <h2 class="overlay-title">Choose Your Path</h2>
@@ -16,7 +16,7 @@
           class="spec-card"
           :class="[
             { 'spec-card--disabled': currentSpec !== null && currentSpec !== spec.id },
-            { 'spec-card--terran': isTerran }
+            { 'spec-card--terran': isTerran, 'spec-card--bioform': isBioform }
           ]"
           :disabled="currentSpec !== null && currentSpec !== spec.id"
           @click="$emit('pick', spec.id)"
@@ -25,7 +25,7 @@
           <div class="spec-card__desc">{{ spec.description }}</div>
           <div class="spec-card__nodes">
             <div v-for="node in spec.nodes" :key="node.id" class="spec-card__node">
-              <span class="spec-card__node-level" :class="{ 'spec-card__node-level--terran': isTerran }">LV{{ node.requiredLevel }}</span>
+              <span class="spec-card__node-level" :class="{ 'spec-card__node-level--terran': isTerran, 'spec-card__node-level--bioform': isBioform }">LV{{ node.requiredLevel }}</span>
               <span class="spec-card__node-name">{{ node.name }}</span>
             </div>
           </div>
@@ -33,7 +33,7 @@
       </div>
 
       <div class="tree-footer">
-        <button class="cta-button" :class="isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary'" @click="$emit('skip')">
+        <button class="cta-button" :class="isBioform ? 'cta-button--bioform-secondary' : (isTerran ? 'cta-button--terran-secondary' : 'cta-button--secondary')" @click="$emit('skip')">
           Decide Later
         </button>
       </div>
@@ -58,6 +58,7 @@ defineEmits<{
 
 const gameStore = useGameStore()
 const isTerran = computed(() => gameStore.race === 'HUMANS')
+const isBioform = computed(() => gameStore.race === 'BIOFORMS')
 
 const specs = SPECIALIZATIONS
 </script>

@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { HUMAN_CONFIG } from '../config/human.config';
+import { BIOFORM_CONFIG } from '../config/bioform.config';
 import { useUpgradeStore } from './upgradeStore';
 import type {
     EvolutionStage,
+    RaceConfig,
     RaceType,
     WeaponId,
 } from '../types/game';
@@ -23,6 +25,12 @@ export interface GameStats {
     visionRadius: number;
     discoveryRadius: number;
 }
+
+const RACE_CONFIGS: Record<RaceType, RaceConfig> = {
+    HUMANS: HUMAN_CONFIG,
+    BIOFORMS: BIOFORM_CONFIG,
+    PSIONICS: HUMAN_CONFIG,
+};
 
 const DEFAULT_STATS: GameStats = {
     damageMult: 1,
@@ -62,8 +70,11 @@ export const useGameStore = defineStore('game', {
         baseStats: { ...DEFAULT_STATS },
     }),
     getters: {
+        raceConfig(): RaceConfig {
+            return RACE_CONFIGS[this.race] || HUMAN_CONFIG;
+        },
         currentStage(): EvolutionStage {
-            return HUMAN_CONFIG.stages[this.currentStageIndex];
+            return this.raceConfig.stages[this.currentStageIndex];
         },
         xpPercentage(): number {
             return (this.xp / this.nextLevelXp) * 100;
@@ -83,7 +94,7 @@ export const useGameStore = defineStore('game', {
             this.level++;
             this.nextLevelXp = Math.floor(this.nextLevelXp * 1.2);
 
-            const nextStage = HUMAN_CONFIG.stages[this.currentStageIndex + 1];
+            const nextStage = this.raceConfig.stages[this.currentStageIndex + 1];
             if (nextStage && this.level >= nextStage.level) {
                 this.currentStageIndex++;
             }
@@ -135,12 +146,12 @@ export const useGameStore = defineStore('game', {
             this.credits = 0;
             this.minerals = 0;
             this.gas = 0;
-            this.activeWeaponId = 'gauss_rifle';
+            this.activeWeaponId = this.race === 'BIOFORMS' ? 'claw_strike' : 'gauss_rifle';
             this.isGameOver = false;
             this.isPaused = false;
             this.showUpgradeOverlay = false;
             this.showSpecializationChoice = false;
-            this.unlockedWeapons = ['gauss_rifle'];
+            this.unlockedWeapons = this.race === 'BIOFORMS' ? ['claw_strike'] : ['gauss_rifle'];
             this.baseStats = { ...DEFAULT_STATS };
         },
     },

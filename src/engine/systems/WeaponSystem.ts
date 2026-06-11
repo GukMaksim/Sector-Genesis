@@ -342,13 +342,70 @@ export class OrbitalLaser extends BaseWeapon {
     }
 }
 
+/* ─── Claw Strike (Bioform starting weapon) ─────────────── */
+
+export class ClawStrike extends BaseWeapon {
+    public id: WeaponId = 'claw_strike';
+
+    public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container): Projectile[] {
+        const stats = this.upgradeStore.statMultipliers;
+        const cooldown = 700 / stats.fireRateMult;
+        const now = Date.now();
+        if (now - this.lastFireTime <= cooldown) return [];
+
+        // Only fire if an enemy is within range
+        const range = 200;
+        const target = this.getNearestEnemy(x, y, enemies);
+        if (!target) return [];
+        const tdx = target.container.x - x;
+        const tdy = target.container.y - y;
+        if (Math.sqrt(tdx * tdx + tdy * tdy) > range) return [];
+        this.lastFireTime = now;
+
+        const dist = Math.max(0.001, Math.sqrt(tdx * tdx + tdy * tdy));
+        const baseDir = { x: tdx / dist, y: tdy / dist };
+
+        const damage = this.getDamage(18 * (1 + this.level * 0.2));
+        const spreadAngle = 0.5;
+        const projectiles: Projectile[] = [];
+
+        VisualEffects.muzzleFlash(x, y, Math.atan2(baseDir.y, baseDir.x), 0x00ff41);
+
+        for (let i = -1; i <= 1; i++) {
+            const angle = i * spreadAngle;
+            const dir = {
+                x: baseDir.x * Math.cos(angle) - baseDir.y * Math.sin(angle),
+                y: baseDir.x * Math.sin(angle) + baseDir.y * Math.cos(angle),
+            };
+            const proj = new Projectile(x, y, dir, {
+                speed: 12,
+                damage,
+                size: 2.0,
+                color: 0x00ff41,
+                lifeTime: 300,
+                shape: 'circle',
+                pierce: i === 0,
+            });
+            stage.addChild(proj.container);
+            projectiles.push(proj);
+        }
+
+        return projectiles;
+    }
+}
+
 /* ─── WeaponSystem ───────────────────────────────────────── */
 
 export class WeaponSystem {
     public equipped: WeaponInstance[] = [];
 
     constructor() {
-        this.equipped.push(new GaussRifle());
+        const race = useGameStore().race;
+        if (race === 'BIOFORMS') {
+            this.equipped.push(new ClawStrike());
+        } else {
+            this.equipped.push(new GaussRifle());
+        }
     }
 
     public update(x: number, y: number, enemies: Enemy[], stage: PIXI.Container, onEnemyKilled?: EnemyKilledCallback): Projectile[] {
@@ -388,6 +445,9 @@ export class WeaponSystem {
                 break;
             case 'orbital_laser':
                 this.equipped.push(new OrbitalLaser());
+                break;
+            case 'claw_strike':
+                this.equipped.push(new ClawStrike());
                 break;
         }
     }

@@ -1,5 +1,5 @@
 export type RaceType = 'HUMANS' | 'PSIONICS' | 'BIOFORMS';
-export type WeaponId = 'gauss_rifle' | 'minigun' | 'rocket_launcher' | 'plasma_cannon' | 'orbital_laser';
+export type WeaponId = 'gauss_rifle' | 'minigun' | 'rocket_launcher' | 'plasma_cannon' | 'orbital_laser' | 'claw_strike';
 export type SkillBranchId = 'command' | 'arsenal' | 'engineering' | 'mobility';
 export type StatKey =
     | 'damageMult'

@@ -7,11 +7,12 @@ const gameStore = useGameStore();
 
 const isTerran = computed(() => gameStore.race === 'HUMANS');
 
-const weaponDetails = {
+const weaponDetails: Record<string, { name: string; icon: string; key: string }> = {
   gauss_rifle: { name: 'Gauss Rifle', icon: '/characters/marine/weapons/gauss-rifle.png', key: '1' },
   minigun: { name: 'Minigun', icon: '/characters/marine/weapons/minigun.png', key: '2' },
   rocket_launcher: { name: 'Rocket Launcher', icon: '/characters/marine/weapons/rocket-launcher.png', key: '3' },
   plasma_cannon: { name: 'Plasma Cannon', icon: '/characters/marine/weapons/plasma-cannon.png', key: '4' },
+  claw_strike: { name: 'Claw Strike', icon: '/characters/monsters/monster1.png', key: '1' },
 };
 
 const hotbarWeapons = computed(() => {
